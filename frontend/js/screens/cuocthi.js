@@ -1,19 +1,110 @@
 // js/screens/cuocthi.js
 // Màn hình "Quản lý cuộc thi" – xem, thêm, sửa, xóa cuộc thi.
-// (Tách nguyên văn từ js/screens.js – không đổi logic)
 
-// Quản lý danh sách cuộc thi: xem, thêm, sửa, xóa
+// ─── Biến module-level ────────────────────────────────────────────────────────
+let editingContestId = null;
+let _contestData = []; // cache dữ liệu cuộc thi hiện tại
+let _contestStatusTimer = null; // setInterval handle để cập nhật badge live
+
+// =============================================================================
+// HÀM TÍNH TRẠNG THÁI THEO THỜI GIAN THỰC (phía client)
+// Dùng để cập nhật badge mà không cần gọi API lại
 // =============================================================================
 
-/** Tải danh sách cuộc thi, populate filter dropdowns, render bảng có search/filter */
-async function screenContests() {
-  try {
-    const data = await API.get("/cuocthi");
+/**
+ * Tính TrangThai của một cuộc thi dựa vào thời gian hiện tại.
+ * Logic khớp với SQL CASE trong backend sync-status.
+ *   - Chưa đến giờ bắt đầu               → "Mở sớm"
+ *   - Đang diễn ra, còn > 24h kết thúc   → "Đang mở"
+ *   - Đang diễn ra, còn ≤ 24h kết thúc   → "Sắp đóng"
+ *   - Đã qua giờ kết thúc                → "Đã kết thúc"
+ */
+function computeTrangThai(thoiGianBatDau, thoiGianKetThuc) {
+  const now = Date.now();
+  const batDau = new Date(thoiGianBatDau).getTime();
+  const ketThuc = new Date(thoiGianKetThuc).getTime();
+  const MS_24H = 24 * 60 * 60 * 1000;
 
-    // Populate dropdown lọc theo loại cuộc thi (chỉ load lần đầu)
+  if (now > ketThuc) return "Đã kết thúc";
+  if (now >= batDau && ketThuc - now < MS_24H) return "Sắp đóng";
+  if (now >= batDau) return "Đang mở";
+  return "Mở sớm";
+}
+
+/**
+ * Cập nhật tất cả badge trạng thái trong bảng theo thời gian thực.
+ * Chạy mỗi 60 giây qua setInterval.
+ * Không re-render toàn bộ bảng (chỉ đổi text + class badge).
+ */
+function _refreshContestStatusBadges() {
+  _contestData.forEach((ct) => {
+    const badge = document.querySelector(
+      `[data-contest-id="${ct.MaCuocThi}"] .status-badge`,
+    );
+    if (!badge) return;
+
+    const newStatus = computeTrangThai(ct.ThoiGianBatDau, ct.ThoiGianKetThuc);
+    const oldStatus = ct.TrangThai;
+
+    if (newStatus !== oldStatus) {
+      ct.TrangThai = newStatus; // cập nhật cache
+      badge.textContent = newStatus;
+      badge.className = `badge ${badgeClass(newStatus)} status-badge`;
+    }
+  });
+}
+
+/**
+ * Dừng timer cập nhật trạng thái (gọi khi rời khỏi màn hình).
+ * Router.go() sẽ re-render innerHTML, nên timer cũ không còn tham chiếu DOM.
+ * Để an toàn, gọi hàm này trước khi navigate.
+ */
+function stopContestStatusTimer() {
+  if (_contestStatusTimer) {
+    clearInterval(_contestStatusTimer);
+    _contestStatusTimer = null;
+  }
+}
+
+// =============================================================================
+// QUẢN LÝ CUỘC THI (admin / cb) – xem, thêm, sửa, xóa
+// =============================================================================
+
+/** Tải danh sách cuộc thi, populate filter dropdowns, render bảng */
+async function screenContests() {
+  stopContestStatusTimer(); // dừng timer cũ nếu có
+
+  const tbody = document.getElementById("contests-tbody");
+  if (tbody) {
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;opacity:.4;padding:24px">
+      <i class="ti ti-loader ti-spin"></i> Đang tải...
+    </td></tr>`;
+  }
+
+  try {
+    // Gọi sync-status trước để DB cập nhật TrangThai theo thời gian thực,
+    // sau đó lấy danh sách mới nhất đã được sync
+    let data;
+    try {
+      data = await API.post("/cuocthi/sync-status", {});
+    } catch (_) {
+      // Nếu sync thất bại (không có quyền, mất mạng...) thì fallback GET thường
+      data = await API.get("/cuocthi");
+    }
+
+    // Ghi đè TrangThai bằng giá trị tính từ thời gian thực (phía client)
+    // để đảm bảo hiển thị chính xác ngay lập tức
+    _contestData = data.map((ct) => ({
+      ...ct,
+      TrangThai: computeTrangThai(ct.ThoiGianBatDau, ct.ThoiGianKetThuc),
+    }));
+
+    // Populate dropdown lọc theo loại cuộc thi (luôn populate lại sau mỗi navigate)
     const loaiSelect = document.getElementById("filter-loai");
-    if (loaiSelect && loaiSelect.options.length <= 1) {
-      const dsLoai = [...new Set(data.map((ct) => ct.LoaiCuocThi))];
+    if (loaiSelect) {
+      const dsLoai = [
+        ...new Set(_contestData.map((ct) => ct.LoaiCuocThi).filter(Boolean)),
+      ];
       loaiSelect.innerHTML =
         `<option value="all">Tất cả loại</option>` +
         dsLoai
@@ -21,10 +112,10 @@ async function screenContests() {
           .join("");
     }
 
-    // Populate dropdown lọc theo trạng thái (chỉ load lần đầu)
+    // Populate dropdown lọc theo trạng thái
     const trangThaiSelect = document.getElementById("filter-trangthai");
-    if (trangThaiSelect && trangThaiSelect.options.length <= 1) {
-      const dsTrangThai = [...new Set(data.map((ct) => ct.TrangThai))];
+    if (trangThaiSelect) {
+      const dsTrangThai = ["Mở sớm", "Đang mở", "Sắp đóng", "Đã kết thúc"];
       trangThaiSelect.innerHTML =
         `<option value="all">Tất cả trạng thái</option>` +
         dsTrangThai
@@ -32,60 +123,72 @@ async function screenContests() {
           .join("");
     }
 
-    // Lấy giá trị search và filter hiện tại
-    const keyword =
-      document.getElementById("search-contest")?.value.toLowerCase() || "";
-    const loai = document.getElementById("filter-loai")?.value || "";
-    const trangThai = document.getElementById("filter-trangthai")?.value || "";
+    _renderContestsTable();
 
-    // Lọc dữ liệu theo keyword, loại và trạng thái
-    const filtered = data.filter((ct) => {
-      const matchKeyword =
-        ct.TenCuocThi.toLowerCase().includes(keyword) ||
-        ct.MaCuocThi.toLowerCase().includes(keyword);
-      const matchLoai = loai === "all" || !loai || ct.LoaiCuocThi === loai;
-      const matchTrangThai =
-        trangThai === "all" || !trangThai || ct.TrangThai === trangThai;
-      return matchKeyword && matchLoai && matchTrangThai;
-    });
+    // Khởi động timer cập nhật badge mỗi 60 giây
+    _contestStatusTimer = setInterval(() => {
+      _refreshContestStatusBadges();
+    }, 60 * 1000);
+  } catch (e) {
+    console.error("[screenContests]", e);
+    if (tbody) {
+      tbody.innerHTML = `<tr><td colspan="9" style="color:#f87171;text-align:center;padding:16px">
+        Lỗi tải dữ liệu: ${e.message}
+      </td></tr>`;
+    }
+  }
+}
 
-    const tbody = document.getElementById("contests-tbody");
-    if (!tbody) return;
+/** Render bảng từ _contestData với bộ lọc hiện tại */
+function _renderContestsTable() {
+  const keyword =
+    document.getElementById("search-contest")?.value.toLowerCase() || "";
+  const loai = document.getElementById("filter-loai")?.value || "all";
+  const trangThai = document.getElementById("filter-trangthai")?.value || "all";
 
-    // Render bảng
-    tbody.innerHTML = filtered
-      .map(
-        (ct) => `
-      <tr>
+  const filtered = _contestData.filter((ct) => {
+    const matchKeyword =
+      ct.TenCuocThi.toLowerCase().includes(keyword) ||
+      ct.MaCuocThi.toLowerCase().includes(keyword);
+    const matchLoai = loai === "all" || ct.LoaiCuocThi === loai;
+    const matchTrangThai = trangThai === "all" || ct.TrangThai === trangThai;
+    return matchKeyword && matchLoai && matchTrangThai;
+  });
+
+  const tbody = document.getElementById("contests-tbody");
+  if (!tbody) return;
+
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;opacity:.5;padding:24px">
+      Không tìm thấy cuộc thi nào
+    </td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered
+    .map(
+      (ct) => `
+      <tr data-contest-id="${ct.MaCuocThi}">
         <td>${ct.MaCuocThi}</td>
         <td>${ct.TenCuocThi}</td>
-        <td>${ct.LoaiCuocThi}</td>
+        <td>${ct.LoaiCuocThi || "-"}</td>
         <td>${formatDate(ct.ThoiGianBatDau)}</td>
         <td>${formatDate(ct.ThoiGianKetThuc)}</td>
         <td>${ct.DiaDiem || "-"}</td>
-        <td>${ct.SoLuongDangKy || 0}/${ct.SoLuongToiDa || 0}</td>
+        <td>${ct.SoLuongDaDangKy || 0}/${ct.SoLuongToiDa || 0}</td>
         <td>
-          <span class="badge ${badgeClass(ct.TrangThai)}">
+          <span class="badge ${badgeClass(ct.TrangThai)} status-badge">
             ${ct.TrangThai}
           </span>
         </td>
         <td class="action-cell">
-          <button class="btn btn-sm"
-            onclick="editContest('${ct.MaCuocThi}')">
-            Sửa
-          </button>
-          <button class="btn btn-sm btn-danger"
-            onclick="deleteContest('${ct.MaCuocThi}')">
-            Xóa
-          </button>
+          <button class="btn btn-sm" onclick="editContest('${ct.MaCuocThi}')">Sửa</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteContest('${ct.MaCuocThi}')">Xóa</button>
         </td>
       </tr>
     `,
-      )
-      .join("");
-  } catch (e) {
-    console.error(e);
-  }
+    )
+    .join("");
 }
 
 /** Xóa cuộc thi sau khi xác nhận, sau đó reload bảng */
@@ -93,16 +196,15 @@ async function deleteContest(id) {
   if (!confirm("Xóa cuộc thi này?")) return;
   try {
     await API.delete("/cuocthi/" + id);
-    screenContests(); // reload lại bảng
+    screenContests();
   } catch (e) {
     alert(e.message);
   }
 }
 
-/** Mở modal thêm mới cuộc thi (reset toàn bộ form) */
+/** Mở modal thêm mới cuộc thi */
 async function addContest() {
   editingContestId = null;
-
   document.getElementById("edit-ten").value = "";
   document.getElementById("edit-loai").value = "";
   document.getElementById("edit-diadiem").value = "";
@@ -110,25 +212,18 @@ async function addContest() {
   document.getElementById("edit-batdau").value = "";
   document.getElementById("edit-ketthuc").value = "";
   document.getElementById("edit-soluong").value = "";
-
   document.querySelector("#contest-modal .section-title").textContent =
     "Thêm cuộc thi";
   document.querySelector("#contest-modal .btn.btn-primary").textContent =
     "Thêm";
-
   document.getElementById("contest-modal").style.display = "flex";
 }
-
-// Lưu id đang được chỉnh sửa (null = đang thêm mới)
-let editingContestId = null;
 
 /** Tải thông tin cuộc thi lên modal để chỉnh sửa */
 async function editContest(id) {
   try {
     const old = await API.get("/cuocthi/" + id);
-
     editingContestId = id;
-
     document.getElementById("edit-ten").value = old.TenCuocThi || "";
     document.getElementById("edit-loai").value = old.LoaiCuocThi || "";
     document.getElementById("edit-diadiem").value = old.DiaDiem || "";
@@ -140,12 +235,10 @@ async function editContest(id) {
       ? old.ThoiGianKetThuc.slice(0, 16)
       : "";
     document.getElementById("edit-soluong").value = old.SoLuongToiDa || 0;
-
     document.querySelector("#contest-modal .section-title").textContent =
       "Sửa cuộc thi";
     document.querySelector("#contest-modal .btn.btn-primary").textContent =
       "Lưu";
-
     document.getElementById("contest-modal").style.display = "flex";
   } catch (e) {
     console.error(e);
@@ -153,12 +246,10 @@ async function editContest(id) {
   }
 }
 
-/** Lưu cuộc thi: thêm mới nếu editingContestId = null, ngược lại cập nhật */
+/** Lưu cuộc thi: thêm mới hoặc cập nhật */
 async function saveContest() {
   try {
-    // Lấy thông tin user từ localStorage
     const user = JSON.parse(localStorage.getItem("user") || "{}");
-
     const payload = {
       TenCuocThi: document.getElementById("edit-ten").value,
       LoaiCuocThi: document.getElementById("edit-loai").value,
@@ -173,20 +264,15 @@ async function saveContest() {
       SoLuongToiDa: parseInt(document.getElementById("edit-soluong").value),
       DonViToChuc: "HVCS",
       MoTa: "",
-      MaGV: user.MaGV || user.maGV || null, // ✅ Lấy từ user thật
+      MaGV: user.MaGV || user.maGV || null,
     };
 
     if (!editingContestId) {
-      // THÊM MỚI
       await API.post("/cuocthi", payload);
       alert("Thêm cuộc thi thành công!");
     } else {
-      // CẬP NHẬT
       const old = await API.get("/cuocthi/" + editingContestId);
-      await API.put("/cuocthi/" + editingContestId, {
-        ...old,
-        ...payload,
-      });
+      await API.put("/cuocthi/" + editingContestId, { ...old, ...payload });
       alert("Cập nhật thành công!");
     }
 
@@ -205,82 +291,134 @@ function closeContestModal() {
 
 // =============================================================================
 // CUỘC THI CHO GIẢNG VIÊN (chỉ xem, không thêm/sửa/xóa)
-// Dùng cùng API /cuocthi nhưng không render cột Thao tác
 // =============================================================================
 
+let _gvContestData = [];
+let _gvContestStatusTimer = null;
+
+function stopGvContestStatusTimer() {
+  if (_gvContestStatusTimer) {
+    clearInterval(_gvContestStatusTimer);
+    _gvContestStatusTimer = null;
+  }
+}
+
+function _refreshGvContestStatusBadges() {
+  _gvContestData.forEach((ct) => {
+    const badge = document.querySelector(
+      `[data-gv-contest-id="${ct.MaCuocThi}"] .status-badge`,
+    );
+    if (!badge) return;
+    const newStatus = computeTrangThai(ct.ThoiGianBatDau, ct.ThoiGianKetThuc);
+    if (newStatus !== ct.TrangThai) {
+      ct.TrangThai = newStatus;
+      badge.textContent = newStatus;
+      badge.className = `badge ${badgeClass(newStatus)} status-badge`;
+    }
+  });
+}
+
 async function screenGvContests() {
+  stopGvContestStatusTimer();
+
+  const tbody = document.getElementById("gv-contests-tbody");
+  if (tbody) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;opacity:.4;padding:24px">
+      <i class="ti ti-loader ti-spin"></i> Đang tải...
+    </td></tr>`;
+  }
+
   try {
     const data = await API.get("/cuocthi");
 
-    // Populate dropdown Loại – router re-render template nên options.length = 1 (option mặc định)
+    // Tính lại TrangThai từ thời gian thực
+    _gvContestData = data.map((ct) => ({
+      ...ct,
+      TrangThai: computeTrangThai(ct.ThoiGianBatDau, ct.ThoiGianKetThuc),
+    }));
+
+    // Populate dropdown Loại
     const loaiSel = document.getElementById("filter-gv-loai");
-    if (loaiSel && loaiSel.options.length <= 1) {
+    if (loaiSel) {
       const dsLoai = [
-        ...new Set(data.map((ct) => ct.LoaiCuocThi).filter(Boolean)),
+        ...new Set(_gvContestData.map((ct) => ct.LoaiCuocThi).filter(Boolean)),
       ];
       loaiSel.innerHTML =
         `<option value="all">Tất cả loại</option>` +
         dsLoai.map((l) => `<option value="${l}">${l}</option>`).join("");
     }
 
-    // Populate dropdown Trạng thái – tương tự
+    // Populate dropdown Trạng thái
     const ttSel = document.getElementById("filter-gv-trangthai");
-    if (ttSel && ttSel.options.length <= 1) {
-      const dsTT = [...new Set(data.map((ct) => ct.TrangThai).filter(Boolean))];
-      ttSel.innerHTML =
-        `<option value="all">Tất cả trạng thái</option>` +
-        dsTT.map((tt) => `<option value="${tt}">${tt}</option>`).join("");
+    if (ttSel) {
+      ttSel.innerHTML = `
+        <option value="all">Tất cả trạng thái</option>
+        <option value="Mở sớm">Mở sớm</option>
+        <option value="Đang mở">Đang mở</option>
+        <option value="Sắp đóng">Sắp đóng</option>
+        <option value="Đã kết thúc">Đã kết thúc</option>
+      `;
     }
 
-    // Đọc filter
-    const keyword =
-      document.getElementById("search-gv-contest")?.value.toLowerCase() || "";
-    const loai = document.getElementById("filter-gv-loai")?.value || "all";
-    const tt = document.getElementById("filter-gv-trangthai")?.value || "all";
+    _renderGvContestsTable();
 
-    // Lọc
-    const filtered = data.filter((ct) => {
-      const matchKw =
-        ct.TenCuocThi.toLowerCase().includes(keyword) ||
-        ct.MaCuocThi.toLowerCase().includes(keyword);
-      const matchLoai = loai === "all" || ct.LoaiCuocThi === loai;
-      const matchTT = tt === "all" || ct.TrangThai === tt;
-      return matchKw && matchLoai && matchTT;
-    });
-
-    const tbody = document.getElementById("gv-contests-tbody");
-    if (!tbody) return;
-
-    if (!filtered.length) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;opacity:.5;padding:24px">Không tìm thấy cuộc thi nào</td></tr>`;
-      return;
-    }
-
-    // SoLuongDaDangKy là tên cột đúng từ VW_CUOCTHI_SOLUONG
-    tbody.innerHTML = filtered
-      .map(
-        (ct) => `
-        <tr>
-          <td>${ct.MaCuocThi}</td>
-          <td>${ct.TenCuocThi}</td>
-          <td>${ct.LoaiCuocThi || "-"}</td>
-          <td>${formatDate(ct.ThoiGianBatDau)}</td>
-          <td>${formatDate(ct.ThoiGianKetThuc)}</td>
-          <td>${ct.DiaDiem || "-"}</td>
-          <td>${ct.SoLuongDaDangKy || 0}/${ct.SoLuongToiDa || 0}</td>
-          <td>
-            <span class="badge ${badgeClass(ct.TrangThai)}">
-              ${ct.TrangThai}
-            </span>
-          </td>
-        </tr>
-      `,
-      )
-      .join("");
+    // Timer cập nhật badge mỗi 60 giây
+    _gvContestStatusTimer = setInterval(() => {
+      _refreshGvContestStatusBadges();
+    }, 60 * 1000);
   } catch (e) {
     console.error("[screenGvContests]", e);
-    const tbody = document.getElementById("gv-contests-tbody");
-    if (tbody)
-      tbody.innerHTML = `<tr><td colspan="8" style="color:#f87171;text-align:center;padding:16px">Lỗi tải dữ liệu: ${e.message}</td></tr>`;
+    if (tbody) {
+      tbody.innerHTML = `<tr><td colspan="8" style="color:#f87171;text-align:center;padding:16px">
+        Lỗi tải dữ liệu: ${e.message}
+      </td></tr>`;
+    }
   }
+}
+
+function _renderGvContestsTable() {
+  const keyword =
+    document.getElementById("search-gv-contest")?.value.toLowerCase() || "";
+  const loai = document.getElementById("filter-gv-loai")?.value || "all";
+  const tt = document.getElementById("filter-gv-trangthai")?.value || "all";
+
+  const filtered = _gvContestData.filter((ct) => {
+    const matchKw =
+      ct.TenCuocThi.toLowerCase().includes(keyword) ||
+      ct.MaCuocThi.toLowerCase().includes(keyword);
+    const matchLoai = loai === "all" || ct.LoaiCuocThi === loai;
+    const matchTT = tt === "all" || ct.TrangThai === tt;
+    return matchKw && matchLoai && matchTT;
+  });
+
+  const tbody = document.getElementById("gv-contests-tbody");
+  if (!tbody) return;
+
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;opacity:.5;padding:24px">
+      Không tìm thấy cuộc thi nào
+    </td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered
+    .map(
+      (ct) => `
+      <tr data-gv-contest-id="${ct.MaCuocThi}">
+        <td>${ct.MaCuocThi}</td>
+        <td>${ct.TenCuocThi}</td>
+        <td>${ct.LoaiCuocThi || "-"}</td>
+        <td>${formatDate(ct.ThoiGianBatDau)}</td>
+        <td>${formatDate(ct.ThoiGianKetThuc)}</td>
+        <td>${ct.DiaDiem || "-"}</td>
+        <td>${ct.SoLuongDaDangKy || 0}/${ct.SoLuongToiDa || 0}</td>
+        <td>
+          <span class="badge ${badgeClass(ct.TrangThai)} status-badge">
+            ${ct.TrangThai}
+          </span>
+        </td>
+      </tr>
+    `,
+    )
+    .join("");
 }

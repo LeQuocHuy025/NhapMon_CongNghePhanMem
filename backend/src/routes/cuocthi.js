@@ -39,6 +39,39 @@ router.get("/:id", async (req, res) => {
   }
 });
 
+// POST /api/cuocthi/sync-status – Tự động UPDATE TrangThai theo thời gian thực
+router.post("/sync-status", async (req, res) => {
+  try {
+    const pool = await getPool();
+
+    await pool.request().query(`
+      UPDATE CUOCTHI
+      SET TrangThai = CASE
+        WHEN GETDATE() > ThoiGianKetThuc
+          THEN N'Đã kết thúc'
+        WHEN GETDATE() >= ThoiGianBatDau
+         AND GETDATE() <= ThoiGianKetThuc
+         AND DATEDIFF(HOUR, GETDATE(), ThoiGianKetThuc) < 24
+          THEN N'Sắp đóng'
+        WHEN GETDATE() >= ThoiGianBatDau
+         AND GETDATE() <= ThoiGianKetThuc
+          THEN N'Đang mở'
+        ELSE N'Mở sớm'
+      END
+      WHERE TrangThai <> N'Đã kết thúc'
+         OR GETDATE() <= ThoiGianKetThuc
+    `);
+
+    const result = await pool.request().query(`
+      SELECT * FROM VW_CUOCTHI_SOLUONG ORDER BY ThoiGianBatDau DESC
+    `);
+    res.json(result.recordset);
+  } catch (err) {
+    console.error("[/cuocthi/sync-status]", err);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+});
+
 // POST /api/cuocthi  – Chỉ admin / cb
 router.post("/", verifyToken, requireRole("admin", "cb"), async (req, res) => {
   const {
