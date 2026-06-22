@@ -27,7 +27,6 @@ app.use("/api/dashboard", require("./src/routes/dashboard"));
 app.use("/api/giangvien", require("./src/routes/giangvien"));
 app.use("/api/baocao", require("./src/routes/baocao"));
 app.use(express.static(path.join(__dirname, "../frontend")));
-
 // ── Global error handler ────────────────────────────
 app.use((err, req, res, next) => {
   console.error(err);
