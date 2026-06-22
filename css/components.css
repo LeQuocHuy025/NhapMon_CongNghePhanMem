@@ -1,0 +1,420 @@
+/* =========================================================
+   components.css – Reusable UI components
+   ========================================================= */
+
+/* ── Buttons ────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  border: 0.5px solid var(--color-border-md);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  background: var(--color-bg);
+  color: var(--color-text);
+  transition:
+    background 0.15s,
+    transform 0.1s;
+  white-space: nowrap;
+}
+.btn:hover {
+  background: var(--color-bg-2);
+}
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn-primary {
+  background: var(--purple-700);
+  color: var(--purple-50);
+  border-color: var(--purple-700);
+}
+.btn-primary:hover {
+  background: var(--purple-500);
+}
+
+.btn-sm {
+  padding: 3px 9px;
+  font-size: 11px;
+}
+.btn-danger {
+  color: var(--red-600);
+}
+
+/* ── Avatar ─────────────────────────────────────────── */
+.avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+  background: var(--purple-50);
+  color: var(--purple-700);
+}
+.av-purple {
+  background: var(--purple-50);
+  color: var(--purple-700);
+}
+.av-teal {
+  background: var(--teal-50);
+  color: var(--teal-600);
+}
+.av-amber {
+  background: var(--amber-50);
+  color: var(--amber-700);
+}
+
+.name-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Badges ─────────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.badge-green {
+  background: var(--green-50);
+  color: var(--green-600);
+}
+.badge-blue {
+  background: var(--blue-50);
+  color: var(--blue-600);
+}
+.badge-amber {
+  background: var(--amber-50);
+  color: var(--amber-700);
+}
+.badge-red {
+  background: var(--red-50);
+  color: var(--red-600);
+}
+.badge-gray {
+  background: var(--gray-50);
+  color: var(--gray-500);
+}
+.badge-teal {
+  background: var(--teal-50);
+  color: var(--teal-800);
+}
+.badge-silver {
+  background: var(--gray-200);
+  color: var(--gray-700);
+}
+.badge-bronze {
+  background: var(--coral-100);
+  color: var(--coral-700);
+}
+
+/* ── Cards ──────────────────────────────────────────── */
+.card {
+  background: var(--color-bg);
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+}
+
+/* ── Stat cards ─────────────────────────────────────── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.stat-card {
+  background: var(--color-bg-2);
+  border-radius: var(--radius-md);
+  padding: 14px;
+}
+.stat-label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+}
+.stat-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.stat-sub {
+  font-size: 11px;
+  color: var(--color-text-hint);
+  margin-top: 3px;
+}
+
+/* ── Section title ──────────────────────────────────── */
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 10px;
+}
+
+/* ── Tables ─────────────────────────────────────────── */
+.table-wrap {
+  background: var(--color-bg);
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+th {
+  background: var(--color-bg-2);
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  border-bottom: 0.5px solid var(--color-border);
+}
+td {
+  padding: 8px 12px;
+  color: var(--color-text);
+  border-bottom: 0.5px solid var(--color-border);
+  vertical-align: middle;
+}
+tr:last-child td {
+  border-bottom: none;
+}
+tr:hover td {
+  background: var(--color-bg-2);
+}
+
+/* ── Forms ──────────────────────────────────────────── */
+.form-row {
+  margin-bottom: 12px;
+}
+.form-label {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-bottom: 5px;
+}
+.form-input,
+.form-select {
+  width: 100%;
+  padding: 7px 10px;
+  border: 0.5px solid var(--color-border-md);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-family: inherit;
+  background: var(--color-bg);
+  color: var(--color-text);
+  transition: border-color 0.15s;
+}
+.form-input:focus,
+.form-select:focus {
+  outline: none;
+  border-color: var(--purple-500);
+  box-shadow: 0 0 0 2px rgba(83, 74, 183, 0.15);
+}
+.w-auto {
+  width: auto;
+}
+
+/* ── Contest cards ──────────────────────────────────── */
+.contest-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.contest-card {
+  background: var(--color-bg);
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.contest-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.contest-meta {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-top: 3px;
+}
+.contest-meta i {
+  font-size: 11px;
+  vertical-align: middle;
+}
+
+.progress-bar {
+  height: 4px;
+  background: var(--color-bg-3);
+  border-radius: 2px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 2px;
+}
+
+/* ── Activity feed ──────────────────────────────────── */
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 0.5px solid var(--color-border);
+}
+.activity-item:last-child {
+  border-bottom: none;
+}
+.activity-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+.activity-text {
+  font-size: 12px;
+  color: var(--color-text);
+}
+.activity-time {
+  font-size: 11px;
+  color: var(--color-text-hint);
+  margin-top: 2px;
+}
+
+/* ── Notifications ──────────────────────────────────── */
+.notification-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 0;
+  border-bottom: 0.5px solid var(--color-border);
+}
+.notification-item:last-child {
+  border-bottom: none;
+}
+.notif-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 14px;
+}
+.notif-text {
+  font-size: 12px;
+  color: var(--color-text);
+}
+.notif-time {
+  font-size: 11px;
+  color: var(--color-text-hint);
+  margin-top: 2px;
+}
+
+.login-page {
+  position: fixed;
+  inset: 0;
+  background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.login-box {
+  width: 360px;
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 5px 30px rgba(0, 0, 0, 0.1);
+}
+
+.login-title {
+  font-size: 26px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.login-sub {
+  text-align: center;
+  color: #666;
+  margin-bottom: 25px;
+}
+.app {
+  display: none;
+}
+/* =========================================================
+   LOGIN
+   ========================================================= */
+
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: #f1f5f9;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 400px;
+
+  background: white;
+
+  padding: 30px;
+
+  border-radius: 12px;
+
+  border: 1px solid #ddd;
+
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.login-title {
+  font-size: 24px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.login-subtitle {
+  text-align: center;
+  color: #666;
+  margin-top: 6px;
+  margin-bottom: 24px;
+}
+
+.login-err {
+  display: none;
+
+  background: #fcebeb;
+  color: #a32d2d;
+
+  padding: 10px;
+
+  border-radius: 8px;
+
+  margin-bottom: 14px;
+
+  font-size: 12px;
+}

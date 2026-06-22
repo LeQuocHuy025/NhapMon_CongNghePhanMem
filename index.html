@@ -1,0 +1,1366 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HVCS – Quản lý thi sinh viên</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.10.0/tabler-icons.min.css"
+    />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/layout.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <style>
+      /* ===== PROFILE SCREEN ===== */
+      .profile-loading {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #888;
+        font-size: 14px;
+        padding: 32px 0;
+      }
+      .profile-card {
+        background: #1a1a1a;
+        border: 1px solid #2e2e2e;
+        border-radius: 14px;
+        padding: 28px 32px;
+        max-width: 680px;
+      }
+      /* Header: avatar + tên + badge */
+      .profile-header {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding-bottom: 22px;
+        border-bottom: 1px solid #2e2e2e;
+        margin-bottom: 22px;
+        flex-wrap: wrap;
+      }
+      .profile-avatar {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #534ab7, #7c6ff0);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 26px;
+        font-weight: 700;
+        color: #fff;
+        flex-shrink: 0;
+      }
+      .profile-name {
+        font-size: 20px;
+        font-weight: 700;
+        color: #f0f0f0;
+        margin-bottom: 6px;
+      }
+      .profile-section-title {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #666;
+        margin-bottom: 12px;
+      }
+      /* Rows thông tin */
+      .profile-rows {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .profile-row {
+        display: grid;
+        grid-template-columns: 28px 160px 1fr;
+        align-items: center;
+        padding: 9px 10px;
+        border-radius: 8px;
+        transition: background 0.15s;
+      }
+      .profile-row:hover {
+        background: #242424;
+      }
+      .profile-row-icon {
+        color: #534ab7;
+        font-size: 15px;
+      }
+      .profile-row-label {
+        font-size: 13px;
+        color: #888;
+      }
+      .profile-row-value {
+        font-size: 13px;
+        color: #e0e0e0;
+        font-weight: 500;
+      }
+      /* Stats cards (sv) */
+      .profile-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 12px;
+        margin-top: 10px;
+      }
+      .profile-stat-card {
+        background: #242424;
+        border: 1px solid #2e2e2e;
+        border-radius: 10px;
+        padding: 14px 12px;
+        text-align: center;
+      }
+      .profile-stat-num {
+        font-size: 26px;
+        font-weight: 700;
+        color: #7c6ff0;
+      }
+      .profile-stat-lbl {
+        font-size: 11px;
+        color: #888;
+        margin-top: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-container" id="login-container">
+      <div class="login-card">
+        <div class="login-title">🏆 HVCS Thi</div>
+
+        <div class="login-subtitle">Hệ thống quản lý cuộc thi sinh viên</div>
+
+        <div class="login-err" id="login-err-msg" style="display: none">
+          Tài khoản hoặc mật khẩu không chính xác!
+        </div>
+
+        <form id="login-form" onsubmit="handleLogin(event)">
+          <div class="form-row">
+            <label class="form-label"> Tên đăng nhập </label>
+
+            <input
+              type="text"
+              id="login-username"
+              class="form-input"
+              placeholder="admin, cb, gv, sv..."
+              required
+            />
+          </div>
+
+          <div class="form-row">
+            <label class="form-label"> Mật khẩu </label>
+
+            <input
+              type="password"
+              id="login-password"
+              class="form-input"
+              placeholder="Mật khẩu"
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            class="btn btn-primary"
+            style="width: 100%; justify-content: center; padding: 10px"
+          >
+            <i class="ti ti-login"></i>
+
+            Đăng nhập
+          </button>
+        </form>
+
+        <div style="text-align: right; margin-top: -4px; margin-bottom: 14px">
+          <a
+            href="#"
+            onclick="forgotPassword()"
+            style="
+              font-size: 12px;
+              color: #534ab7;
+              text-decoration: none;
+              font-weight: 500;
+            "
+          >
+            Quên mật khẩu?
+          </a>
+        </div>
+
+        <div style="margin-top: 16px; text-align: center">
+          <span style="font-size: 12px; color: #999"> Hoặc </span>
+        </div>
+
+        <button
+          class="btn"
+          style="width: 100%; justify-content: center; margin-top: 12px"
+          onclick="loginAsGuest()"
+        >
+          <i class="ti ti-eye"></i>
+
+          Đăng nhập bằng tài khoản Khách
+        </button>
+      </div>
+    </div>
+    <div class="app" id="main-app-layout" style="display: none">
+      <aside class="sidebar">
+        <div class="logo">
+          <div class="logo-title">🏆 HVCS Thi</div>
+          <div class="logo-sub">Quản lý cuộc thi sinh viên</div>
+        </div>
+        <div id="role-display" class="role-badge role-admin"></div>
+        <nav class="nav" id="nav-menu"></nav>
+      </aside>
+
+      <div class="main">
+        <header class="topbar">
+          <div class="topbar-left">
+            <span class="topbar-title" id="topbar-title">Dashboard</span>
+          </div>
+          <div class="topbar-actions">
+            <button class="btn" onclick="showChangePassword()">
+              <i class="ti ti-key"></i>
+              Đổi mật khẩu
+            </button>
+
+            <button
+              class="btn"
+              onclick="handleLogout()"
+              style="border-color: #a32d2d; color: #a32d2d"
+            >
+              <i class="ti ti-logout"></i>
+              Đăng xuất
+            </button>
+
+            <button class="btn" aria-label="Thông báo">
+              <i class="ti ti-bell" aria-hidden="true"></i>
+            </button>
+            <div class="avatar" id="user-avatar"></div>
+          </div>
+        </header>
+
+        <main class="content" id="content"></main>
+      </div>
+    </div>
+
+    <div id="screen-templates" hidden>
+      <section id="tpl-dashboard">
+        <!-- ── Stat cards (JS fill toàn bộ theo role) ── -->
+        <div class="stats-grid" id="dash-stats-grid">
+          <!-- Populated by renderDashStats() -->
+          <div class="stat-card" style="opacity: 0.4">
+            <div class="stat-label">Đang tải...</div>
+            <div class="stat-value">—</div>
+          </div>
+          <div class="stat-card" style="opacity: 0.4">
+            <div class="stat-label">Đang tải...</div>
+            <div class="stat-value">—</div>
+          </div>
+          <div class="stat-card" style="opacity: 0.4">
+            <div class="stat-label">Đang tải...</div>
+            <div class="stat-value">—</div>
+          </div>
+          <div class="stat-card" style="opacity: 0.4">
+            <div class="stat-label">Đang tải...</div>
+            <div class="stat-value">—</div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <!-- ── Cột trái: Cuộc thi sắp diễn ra ── -->
+          <div>
+            <div class="section-title">Cuộc thi sắp diễn ra</div>
+            <div class="contest-list" id="dash-contest-list">
+              <div style="color: #555; font-size: 13px; padding: 8px 0">
+                <i class="ti ti-loader ti-spin"></i> Đang tải...
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Cột phải: Hoạt động gần đây ── -->
+          <div>
+            <div class="section-title">Hoạt động gần đây</div>
+            <div class="card" style="padding: 8px 14px" id="dash-activity-list">
+              <div style="color: #555; font-size: 13px; padding: 8px 0">
+                <i class="ti ti-loader ti-spin"></i> Đang tải...
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== THÔNG TIN TÀI KHOẢN ===== -->
+      <section id="tpl-profile">
+        <div id="profile-wrap">
+          <!-- Được render bởi screenProfile() -->
+        </div>
+      </section>
+
+      <section id="tpl-contests">
+        <div class="toolbar">
+          <div class="section-title">Danh sách cuộc thi</div>
+          <button class="btn btn-primary" onclick="addContest()">
+            <i class="ti ti-plus" aria-hidden="true"></i>
+            Thêm cuộc thi
+          </button>
+        </div>
+        <div class="filter-bar">
+          <input
+            id="search-contest"
+            class="form-input"
+            placeholder="Tìm kiếm cuộc thi..."
+            style="max-width: 240px"
+            oninput="screenContests()"
+          />
+
+          <select
+            id="filter-loai"
+            class="form-select w-auto"
+            onchange="screenContests()"
+          ></select>
+
+          <select
+            id="filter-trangthai"
+            class="form-select w-auto"
+            onchange="screenContests()"
+          ></select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Mã</th>
+                <th>Tên cuộc thi</th>
+                <th>Loại</th>
+                <th>Bắt đầu</th>
+                <th>Kết thúc</th>
+                <th>Địa điểm</th>
+                <th>Đăng ký</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="contests-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="tpl-registration">
+        <div class="toolbar">
+          <div class="section-title">Duyệt đăng ký tham gia</div>
+          <div style="display: flex; gap: 6px">
+            <button class="btn btn-sm" onclick="duyetTatCa()">
+              Duyệt tất cả
+            </button>
+
+            <button class="btn btn-sm" onclick="xuatDanhSach()">
+              Xuất danh sách
+            </button>
+          </div>
+        </div>
+        <div class="filter-bar">
+          <input
+            id="search-registration"
+            class="form-input"
+            placeholder="Tìm theo mã SV hoặc tên..."
+            style="max-width: 240px"
+            oninput="screenRegistration()"
+          />
+          <select
+            id="filter-registration-contest"
+            class="form-select w-auto"
+            onchange="screenRegistration()"
+          ></select>
+
+          <select
+            id="filter-registration-status"
+            class="form-select w-auto"
+            onchange="screenRegistration()"
+          ></select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Mã SV</th>
+                <th>Họ tên</th>
+                <th>Khoa</th>
+                <th>Cuộc thi</th>
+                <th>Ngày ĐK</th>
+                <th>GV xác nhận</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="registration-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="tpl-results">
+        <div
+          id="result-error"
+          style="
+            display: none;
+            background: #7f1d1d;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            font-weight: 600;
+          "
+        ></div>
+
+        <div
+          id="result-success"
+          style="
+            display: none;
+            background: #14532d;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            font-weight: 600;
+          "
+        ></div>
+        <div class="toolbar">
+          <div class="section-title">Kết quả cuộc thi</div>
+          <input
+            type="file"
+            id="import-result-file"
+            accept=".xlsx,.xls,.csv"
+            hidden
+            onchange="importResults(event)"
+          />
+
+          <button
+            id="btn-import-result"
+            class="btn btn-primary"
+            onclick="document.getElementById('import-result-file').click()"
+          >
+            Nhập kết quả
+          </button>
+        </div>
+        <div class="two-col mb-14">
+          <div class="card">
+            <div class="form-row">
+              <label>Chọn cuộc thi</label>
+
+              <input
+                id="search-result-contest"
+                class="form-input"
+                placeholder="Tìm cuộc thi..."
+                oninput="filterContestOptions()"
+              />
+
+              <select
+                id="result-contest"
+                class="form-select"
+                onchange="loadResultContest()"
+              ></select>
+            </div>
+          </div>
+          <div class="card stat-row">
+            <div class="stat-mini">
+              <div class="stat-label">Tham gia</div>
+              <div class="stat-num" id="res-stat-participants">-</div>
+            </div>
+            <div class="stat-mini">
+              <div class="stat-label">Có giải</div>
+              <div
+                class="stat-num"
+                style="color: #0f6e56"
+                id="res-stat-awarded"
+              >
+                -
+              </div>
+            </div>
+            <div class="stat-mini">
+              <div class="stat-label">Giải nhất</div>
+              <div class="stat-num" style="color: #854f0b" id="res-stat-first">
+                -
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>STT</th>
+                <th>Mã SV</th>
+                <th>Họ tên</th>
+                <th>Lớp</th>
+                <th>Khoa</th>
+                <th>Cuộc thi</th>
+                <th>Điểm</th>
+                <th>Giải thưởng</th>
+              </tr>
+            </thead>
+            <tbody id="results-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="tpl-students">
+        <div class="toolbar">
+          <div
+            id="student-error"
+            style="
+              display: none;
+              background: #7f1d1d;
+              color: white;
+              padding: 12px;
+              border-radius: 8px;
+              margin-bottom: 12px;
+              font-weight: 600;
+            "
+          ></div>
+
+          <div
+            id="student-success"
+            style="
+              display: none;
+              background: #14532d;
+              color: white;
+              padding: 12px;
+              border-radius: 8px;
+              margin-bottom: 12px;
+              font-weight: 600;
+            "
+          ></div>
+          <div class="section-title">Quản lý sinh viên</div>
+
+          <div style="display: flex; gap: 8px; align-items: center">
+            <input
+              type="file"
+              id="import-student-file"
+              accept=".xlsx,.xls,.csv"
+              hidden
+              onchange="importStudents(event)"
+            />
+
+            <button
+              class="btn"
+              onclick="document.getElementById('import-student-file').click()"
+            >
+              <i class="ti ti-upload"></i>
+              Nhập từ file
+            </button>
+
+            <button class="btn btn-primary" onclick="openStudentModal()">
+              <i class="ti ti-plus"></i>
+              Thêm sinh viên
+            </button>
+          </div>
+        </div>
+        <div class="filter-bar">
+          <input
+            id="search-student"
+            class="form-input"
+            placeholder="Tìm theo mã SV, tên, email..."
+            style="max-width: 240px"
+            oninput="filterStudents()"
+          />
+
+          <select
+            id="filter-khoa-student"
+            class="form-select w-auto"
+            onchange="filterStudents()"
+          >
+            <option value="all">Tất cả khoa</option>
+          </select>
+
+          <select
+            id="filter-lop-student"
+            class="form-select w-auto"
+            onchange="filterStudents()"
+          >
+            <option value="all">Tất cả lớp</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Mã SV</th>
+                <th>Họ tên</th>
+                <th>Giới tính</th>
+                <th>Ngày sinh</th>
+                <th>Lớp</th>
+                <th>Khoa</th>
+                <th>Email</th>
+                <th>SĐT</th>
+                <th style="text-align: center">Số CT</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="students-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="tpl-teachers">
+        <div class="toolbar">
+          <div class="section-title">Quản lý giảng viên</div>
+
+          <button class="btn btn-primary" onclick="openTeacherModal()">
+            <i class="ti ti-plus"></i>
+            Thêm giảng viên
+          </button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Mã GV</th>
+                <th>Họ tên</th>
+                <th>Khoa</th>
+                <th>Email</th>
+                <th>SĐT</th>
+                <th>Tài khoản</th>
+                <th>Vai trò</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+
+            <tbody id="teachers-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!--
+  PATCH: section #tpl-reports trong index.html
+  Thay TOÀN BỘ <section id="tpl-reports">…</section> hiện tại bằng đoạn dưới đây.
+  Khác biệt: thêm id cho 3 dropdown + nút Xuất báo cáo, và đổi loại báo cáo
+  sang dạng có value để JS đọc.
+-->
+      <section id="tpl-reports">
+        <div class="section-title mb-14">Thống kê báo cáo (BM_BC_01)</div>
+        <div class="stats-grid mb-16">
+          <div class="stat-card">
+            <div class="stat-label">Tổng lượt đăng ký</div>
+            <div class="stat-value" id="report-total-reg">-</div>
+            <div class="stat-sub" id="report-sub-reg"></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Tỷ lệ được duyệt</div>
+            <div class="stat-value" id="report-approval-rate">-</div>
+            <div class="stat-sub" id="report-sub-approval"></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Tổng giải đạt được</div>
+            <div class="stat-value" id="report-total-awards">-</div>
+            <div class="stat-sub" id="report-sub-awards"></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Khoa dẫn đầu</div>
+            <div class="stat-value" id="report-top-faculty">-</div>
+            <div class="stat-sub" id="report-sub-faculty"></div>
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="card">
+            <div class="section-title">Thống kê theo khoa</div>
+            <div class="table-wrap mt-10">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Khoa</th>
+                    <th>SV tham gia</th>
+                    <th>Số giải</th>
+                  </tr>
+                </thead>
+                <tbody id="reports-faculty-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card">
+            <div class="section-title">Tùy chọn xuất báo cáo</div>
+            <div class="form-row mt-10">
+              <label class="form-label">Năm học</label>
+              <select class="form-select" id="report-filter-year">
+                <option value="all">Tất cả</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Khoa</label>
+              <select class="form-select" id="report-filter-khoa">
+                <option value="all">Tất cả</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Loại báo cáo</label>
+              <select class="form-select" id="report-filter-type">
+                <option value="theo-khoa">Theo khoa</option>
+                <option value="theo-cuoc-thi">Theo cuộc thi</option>
+                <option value="bang-vang">Bảng vàng thành tích</option>
+              </select>
+            </div>
+            <button
+              class="btn btn-primary"
+              style="width: 100%"
+              id="report-export-btn"
+              onclick="exportReport()"
+            >
+              <i class="ti ti-download" aria-hidden="true"></i> Xuất báo cáo
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section id="tpl-accounts">
+        <div class="toolbar">
+          <div class="section-title">Quản lý tài khoản</div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Mã TK</th>
+                <th>Tên đăng nhập</th>
+                <th>Họ tên</th>
+                <th>Vai trò</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="accounts-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="tpl-logs">
+        <!-- Toolbar ------------------------------------------------ -->
+        <div class="toolbar">
+          <div class="section-title">Nhật ký hệ thống (BM_LOG_01)</div>
+          <button class="btn btn-sm" onclick="exportLogs()">
+            <i class="ti ti-download" aria-hidden="true"></i>
+            Xuất Excel
+          </button>
+        </div>
+
+        <!-- Filter bar -------------------------------------------- -->
+        <div
+          class="filter-bar"
+          style="flex-wrap: wrap; gap: 8px; align-items: center"
+        >
+          <!-- Tìm theo tên đăng nhập -->
+          <input
+            id="log-search"
+            class="form-input"
+            placeholder="Tìm tài khoản..."
+            style="max-width: 180px"
+            oninput="debounceLoadLogs()"
+          />
+
+          <!-- Từ ngày -->
+          <input
+            id="log-tu-ngay"
+            type="date"
+            class="form-input"
+            style="max-width: 150px"
+            onchange="loadLogs(1)"
+            title="Từ ngày"
+          />
+
+          <!-- Đến ngày -->
+          <input
+            id="log-den-ngay"
+            type="date"
+            class="form-input"
+            style="max-width: 150px"
+            onchange="loadLogs(1)"
+            title="Đến ngày"
+          />
+
+          <!-- Hành động -->
+          <select
+            id="log-hanh-dong"
+            class="form-select w-auto"
+            onchange="loadLogs(1)"
+          >
+            <option value="all">Tất cả hành động</option>
+            <!-- Populated by JS via /api/nhatky/meta -->
+          </select>
+
+          <!-- Vai trò -->
+          <select
+            id="log-vai-tro"
+            class="form-select w-auto"
+            onchange="loadLogs(1)"
+          >
+            <option value="all">Tất cả vai trò</option>
+            <option value="admin">Quản trị viên</option>
+            <option value="cb">Cán bộ</option>
+            <option value="gv">Giảng viên</option>
+            <option value="sv">Sinh viên</option>
+          </select>
+
+          <!-- Số dòng / trang -->
+          <select
+            id="log-limit"
+            class="form-select w-auto"
+            onchange="loadLogs(1)"
+          >
+            <option value="20">20 / trang</option>
+            <option value="50" selected>50 / trang</option>
+            <option value="100">100 / trang</option>
+            <option value="200">200 / trang</option>
+          </select>
+
+          <!-- Nút xóa filter -->
+          <button
+            class="btn btn-sm"
+            onclick="resetLogFilters()"
+            title="Xóa bộ lọc"
+          >
+            <i class="ti ti-x" aria-hidden="true"></i>
+            Xóa lọc
+          </button>
+        </div>
+
+        <!-- Table  -->
+        <div class="table-wrap" style="margin-top: 10px">
+          <table>
+            <thead>
+              <tr>
+                <th>Thời gian</th>
+                <th>Tài khoản</th>
+                <th>Vai trò</th>
+                <th>Hành động</th>
+                <th>Mô tả</th>
+              </tr>
+            </thead>
+            <tbody id="logs-tbody">
+              <tr>
+                <td
+                  colspan="5"
+                  style="text-align: center; opacity: 0.5; padding: 32px"
+                >
+                  <i class="ti ti-loader ti-spin"></i> Đang tải...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination bar -->
+        <div
+          id="log-pagination"
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 12px 0 4px;
+            font-size: 13px;
+            color: #999;
+          "
+        >
+          <!-- Populated by JS -->
+        </div>
+      </section>
+
+      <section id="tpl-permissions">
+        <div class="toolbar">
+          <div class="section-title">Phân quyền hệ thống</div>
+
+          <button class="btn btn-primary">
+            <i class="ti ti-plus"></i>
+            Thêm quyền
+          </button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Vai trò</th>
+                <th>Quyền hạn</th>
+                <th>Chức năng</th>
+                <th>Trạng thái</th>
+              </tr>
+            </thead>
+
+            <tbody id="permissions-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="tpl-participants">
+        <div class="toolbar">
+          <div class="section-title">Danh sách sinh viên tham gia</div>
+
+          <div style="display: flex; gap: 6px">
+            <button class="btn btn-sm" onclick="xacNhanTatCa()">
+              Xác nhận tất cả
+            </button>
+
+            <button class="btn btn-sm" onclick="xuatDanhSachThamGia()">
+              Xuất danh sách
+            </button>
+          </div>
+        </div>
+
+        <div class="filter-bar">
+          <input
+            id="search-participant"
+            class="form-input"
+            placeholder="Tìm theo mã SV hoặc tên..."
+            style="max-width: 240px"
+            oninput="screenParticipants()"
+          />
+
+          <select
+            id="filter-participant-contest"
+            class="form-select w-auto"
+            onchange="screenParticipants()"
+          ></select>
+
+          <select
+            id="filter-participant-status"
+            class="form-select w-auto"
+            onchange="screenParticipants()"
+          ></select>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Mã SV</th>
+                <th>Họ tên</th>
+                <th>Khoa</th>
+                <th>Cuộc thi</th>
+                <th>Ngày đăng ký</th>
+                <th>GV xác nhận</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+
+            <tbody id="participants-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="tpl-cb-registration">
+        <div class="section-title">Duyệt đăng ký tham gia</div>
+
+        <div class="card">Chức năng dành riêng cho cán bộ.</div>
+      </section>
+      <section id="tpl-confirm">
+        <div class="toolbar">
+          <div class="section-title">Xác nhận sinh viên tham gia</div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>MSSV</th>
+                <th>Họ tên</th>
+                <th>Khoa</th>
+                <th>Cuộc thi</th>
+                <th>Điều kiện</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+
+            <tbody id="confirm-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+      <!-- ===== CUỘC THI CHO GIẢNG VIÊN (xem, không sửa/xóa/thêm) ===== -->
+      <section id="tpl-gv-contests">
+        <div class="toolbar">
+          <div class="section-title">Danh sách cuộc thi</div>
+        </div>
+        <div class="filter-bar">
+          <input
+            id="search-gv-contest"
+            class="form-input"
+            placeholder="Tìm kiếm cuộc thi..."
+            style="max-width: 240px"
+            oninput="screenGvContests()"
+          />
+          <select
+            id="filter-gv-loai"
+            class="form-select w-auto"
+            onchange="screenGvContests()"
+          >
+            <option value="all">Tất cả loại</option>
+          </select>
+          <select
+            id="filter-gv-trangthai"
+            class="form-select w-auto"
+            onchange="screenGvContests()"
+          >
+            <option value="all">Tất cả trạng thái</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Mã</th>
+                <th>Tên cuộc thi</th>
+                <th>Loại</th>
+                <th>Bắt đầu</th>
+                <th>Kết thúc</th>
+                <th>Địa điểm</th>
+                <th>Đăng ký</th>
+                <th>Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody id="gv-contests-tbody">
+              <tr>
+                <td
+                  colspan="8"
+                  style="text-align: center; opacity: 0.4; padding: 24px"
+                >
+                  <i class="ti ti-loader ti-spin"></i> Đang tải...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="tpl-sv-contests">
+        <div class="section-title">Danh sách cuộc thi</div>
+
+        <div class="card"></div>
+      </section>
+      <section id="tpl-sv-register">
+        <div class="section-title">Đăng ký tham gia</div>
+
+        <button class="btn btn-primary">Đăng ký cuộc thi</button>
+      </section>
+      <section id="tpl-sv-results">
+        <div class="section-title">Kết quả của sinh viên</div>
+
+        <div class="card"></div>
+      </section>
+    </div>
+
+    <div
+      id="change-password-modal"
+      style="
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+      "
+    >
+      <div
+        class="card"
+        style="
+          width: 100%;
+          max-width: 400px;
+          background: white;
+          padding: 24px;
+          border-radius: 12px;
+        "
+      >
+        <div class="section-title" style="font-size: 20px">Đổi mật khẩu</div>
+
+        <div class="form-row">
+          <label class="form-label">Mật khẩu cũ</label>
+
+          <input type="password" id="old-password" class="form-input" />
+        </div>
+
+        <div class="form-row">
+          <label class="form-label">Mật khẩu mới</label>
+
+          <input type="password" id="new-password" class="form-input" />
+        </div>
+
+        <div class="form-row">
+          <label class="form-label">Nhập lại mật khẩu mới</label>
+
+          <input type="password" id="confirm-password" class="form-input" />
+        </div>
+
+        <div
+          style="
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 18px;
+          "
+        >
+          <button class="btn" onclick="closeChangePassword()">Hủy</button>
+          <button class="btn btn-primary" onclick="changePassword()">
+            Lưu
+          </button>
+        </div>
+      </div>
+    </div>
+    <div
+      id="contest-modal"
+      style="
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+      "
+    >
+      <div
+        class="card"
+        style="
+          width: 100%;
+          max-width: 500px;
+          padding: 24px;
+          border-radius: 16px;
+          background: #1f1f1f;
+        "
+      >
+        <div class="section-title" style="font-size: 22px">Sửa cuộc thi</div>
+
+        <div class="form-row">
+          <label class="form-label"> Thời gian bắt đầu </label>
+
+          <input type="datetime-local" id="edit-batdau" class="form-input" />
+        </div>
+
+        <div class="form-row">
+          <label class="form-label"> Thời gian kết thúc </label>
+
+          <input type="datetime-local" id="edit-ketthuc" class="form-input" />
+        </div>
+
+        <div class="form-row">
+          <label class="form-label"> Số lượng tối đa </label>
+
+          <input type="number" id="edit-soluong" class="form-input" />
+        </div>
+
+        <div class="form-row">
+          <label class="form-label">Tên cuộc thi</label>
+
+          <input type="text" id="edit-ten" class="form-input" />
+        </div>
+
+        <div class="form-row">
+          <label class="form-label">Loại cuộc thi</label>
+
+          <input type="text" id="edit-loai" class="form-input" />
+        </div>
+
+        <div class="form-row">
+          <label class="form-label">Địa điểm</label>
+
+          <input type="text" id="edit-diadiem" class="form-input" />
+        </div>
+
+        <div class="form-row">
+          <label class="form-label">Trạng thái</label>
+
+          <select id="edit-trangthai" class="form-input">
+            <option>Đang mở</option>
+            <option>Mở sớm</option>
+            <option>Sắp đóng</option>
+            <option>Đã kết thúc</option>
+          </select>
+        </div>
+
+        <div
+          style="
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+          "
+        >
+          <button class="btn" onclick="closeContestModal()">Hủy</button>
+
+          <button class="btn btn-primary" onclick="saveContest()">Lưu</button>
+        </div>
+      </div>
+    </div>
+    <!-- Modal Sinh viên -->
+    <div
+      id="student-modal"
+      style="
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+      "
+    >
+      <div
+        class="card"
+        style="
+          width: 100%;
+          max-width: 500px;
+          padding: 24px;
+          background: #1f1f1f;
+        "
+      >
+        <div class="section-title">Sinh viên</div>
+
+        <div class="form-row">
+          <label>Mã SV</label>
+          <input id="student-masv" class="form-input" placeholder="VD: SV001" />
+        </div>
+
+        <div class="form-row">
+          <label>Họ tên</label>
+          <input id="student-hoten" class="form-input" />
+        </div>
+
+        <div class="form-row">
+          <label>Ngày sinh</label>
+          <input id="student-ngaysinh" type="date" class="form-input" />
+        </div>
+
+        <div class="form-row">
+          <label>Giới tính</label>
+          <select id="student-gioitinh" class="form-input">
+            <option value="Nam">Nam</option>
+            <option value="Nữ">Nữ</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <label>Email</label>
+          <input id="student-email" class="form-input" type="email" />
+        </div>
+
+        <div class="form-row">
+          <label>SĐT</label>
+          <input
+            id="student-sdt"
+            class="form-input"
+            placeholder="VD: 0901000001"
+          />
+        </div>
+
+        <div class="form-row">
+          <label>Mã lớp</label>
+          <input id="student-malop" class="form-input" placeholder="VD: L001" />
+        </div>
+
+        <div
+          style="
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+          "
+        >
+          <button class="btn" onclick="closeStudentModal()">Hủy</button>
+          <button class="btn btn-primary" onclick="saveStudent()">Lưu</button>
+        </div>
+      </div>
+    </div>
+    <div
+      id="teacher-modal"
+      style="
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+      "
+    >
+      <div
+        class="card"
+        style="
+          width: 100%;
+          max-width: 500px;
+          padding: 24px;
+          background: #1f1f1f;
+        "
+      >
+        <div class="section-title">Giảng viên</div>
+
+        <div class="form-row">
+          <label>Mã GV</label>
+          <input id="teacher-magv" class="form-input" />
+        </div>
+
+        <div class="form-row">
+          <label>Họ tên</label>
+          <input id="teacher-hoten" class="form-input" />
+        </div>
+
+        <div class="form-row">
+          <label>Email</label>
+          <input id="teacher-email" class="form-input" />
+        </div>
+
+        <div class="form-row">
+          <label>SĐT</label>
+          <input id="teacher-sdt" class="form-input" />
+        </div>
+
+        <div class="form-row">
+          <label>Mã khoa</label>
+          <input id="teacher-makhoa" class="form-input" />
+        </div>
+
+        <div class="form-row">
+          <label>Tên đăng nhập</label>
+          <input id="teacher-username" class="form-input" />
+        </div>
+
+        <div class="form-row">
+          <label>Mật khẩu</label>
+          <input id="teacher-password" class="form-input" />
+        </div>
+
+        <div class="form-row">
+          <label>Vai trò</label>
+
+          <select id="teacher-role" class="form-input">
+            <option value="gv">Giảng viên</option>
+            <option value="cb">Cán bộ</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <label>Trạng thái</label>
+
+          <select id="teacher-status" class="form-input">
+            <option>Hoạt động</option>
+            <option>Bị khóa</option>
+          </select>
+        </div>
+
+        <div
+          style="
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+          "
+        >
+          <button class="btn" onclick="closeTeacherModal()">Hủy</button>
+
+          <button class="btn btn-primary" onclick="saveTeacher()">Lưu</button>
+        </div>
+      </div>
+    </div>
+    <!-- Scripts -->
+    <script src="js/api.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/roles.js"></script>
+    <script src="js/screens.js"></script>
+    <script src="js/router.js"></script>
+    <script src="js/app.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  </body>
+</html>
