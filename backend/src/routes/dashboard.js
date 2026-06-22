@@ -104,10 +104,9 @@ router.get("/upcoming", verifyToken, async (req, res) => {
   try {
     const pool = await getPool();
 
-    const where =
-      role === "sv" || role === "guest"
-        ? `WHERE ct.TrangThai = N'Đang mở'`
-        : `WHERE ct.TrangThai IN (N'Đang mở', N'Mở sớm', N'Sắp đóng')`;
+    const where = `
+      WHERE ct.TrangThai = N'Mở sớm'
+    `;
 
     const result = await pool.request().query(`
       SELECT TOP 5

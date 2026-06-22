@@ -306,19 +306,19 @@
             class="form-input"
             placeholder="Tìm kiếm cuộc thi..."
             style="max-width: 240px"
-            oninput="screenContests()"
+            oninput="_renderContestsTable()"
           />
 
           <select
             id="filter-loai"
             class="form-select w-auto"
-            onchange="screenContests()"
+            onchange="_renderContestsTable()"
           ></select>
 
           <select
             id="filter-trangthai"
             class="form-select w-auto"
-            onchange="screenContests()"
+            onchange="_renderContestsTable()"
           ></select>
         </div>
         <div class="table-wrap">

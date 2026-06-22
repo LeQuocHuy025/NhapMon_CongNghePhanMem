@@ -5,11 +5,72 @@ const { verifyToken } = require("../middleware/auth");
 const { requireRole } = require("../middleware/role");
 const logAction = require("../helpers/logAction");
 
+// =============================================================================
+// CÔNG THỨC TÍNH TRẠNG THÁI THEO THỜI GIAN THỰC (dùng chung cho mọi câu lệnh SQL)
+// Bug cũ: TrangThai chỉ được tính 1 lần lúc INSERT/UPDATE rồi lưu cứng vào DB,
+// nên càng về sau giá trị càng bị "đứng hình" (sai) nếu không ai sửa cuộc thi đó.
+// => Mọi lần ĐỌC (GET) hoặc đồng bộ (sync-status) đều phải tính lại theo GETDATE()
+//    hiện tại rồi UPDATE ngược vào bảng CUOCTHI, để cột TrangThai trong DB luôn
+//    khớp với thời gian thực, không phụ thuộc lần sửa gần nhất.
+// Lưu ý: dùng DATEDIFF(SECOND,...) thay vì HOUR để khớp chính xác với cách tính
+// 24h (mốc "Sắp đóng") ở phía client (computeTrangThai trong cuocthi.js màn hình).
+// =============================================================================
+const TRANGTHAI_CASE_SQL = `
+  CASE
+    WHEN GETDATE() > ThoiGianKetThuc THEN N'Đã kết thúc'
+    WHEN GETDATE() >= ThoiGianBatDau
+      AND DATEDIFF(SECOND, GETDATE(), ThoiGianKetThuc) < 86400 THEN N'Sắp đóng'
+    WHEN GETDATE() >= ThoiGianBatDau THEN N'Đang mở'
+    ELSE N'Mở sớm'
+  END
+`;
+
+// Đồng bộ TrangThai trong bảng CUOCTHI theo thời gian thực.
+// id = null  -> đồng bộ TẤT CẢ cuộc thi
+// id = "xxx" -> chỉ đồng bộ 1 cuộc thi (dùng cho GET chi tiết, nhẹ hơn)
+async function syncContestStatus(pool, id = null) {
+  const request = pool.request();
+  let where = "";
+  if (id) {
+    request.input("id", sql.NVarChar, id);
+    where = "WHERE MaCuocThi = @id";
+  }
+  await request.query(`
+    UPDATE CUOCTHI
+    SET TrangThai = ${TRANGTHAI_CASE_SQL}
+    ${where}
+  `);
+}
+
 // GET /api/cuocthi  – Tất cả role (kể cả guest không cần token)
 router.get("/", async (req, res) => {
   try {
     const pool = await getPool();
+    // ✅ Đồng bộ trạng thái real-time vào DB trước khi đọc, để mọi client
+    // luôn nhận TrangThai mới nhất (kể cả khi front-end fallback từ /sync-status).
+    await syncContestStatus(pool);
+
     // Dùng View đã có sẵn trong DB
+    const result = await pool.request().query(`
+      SELECT * FROM VW_CUOCTHI_SOLUONG
+      ORDER BY ThoiGianBatDau DESC
+    `);
+    res.json(result.recordset);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+});
+
+// POST /api/cuocthi/sync-status – Đồng bộ TrangThai TOÀN BỘ cuộc thi theo
+// thời gian thực rồi trả về danh sách mới nhất. Front-end (screenContests)
+// đã gọi endpoint này trước tiên — trước đây route này CHƯA tồn tại nên luôn
+// rơi vào catch và fallback sang GET /cuocthi (không có gì để đồng bộ cả).
+router.post("/sync-status", async (req, res) => {
+  try {
+    const pool = await getPool();
+    await syncContestStatus(pool);
+
     const result = await pool.request().query(`
       SELECT * FROM VW_CUOCTHI_SOLUONG
       ORDER BY ThoiGianBatDau DESC
@@ -25,6 +86,9 @@ router.get("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const pool = await getPool();
+    // ✅ Đồng bộ trạng thái real-time cho riêng cuộc thi này trước khi đọc
+    await syncContestStatus(pool, req.params.id);
+
     const result = await pool
       .request()
       .input("id", sql.NVarChar, req.params.id)
@@ -35,39 +99,6 @@ router.get("/:id", async (req, res) => {
 
     res.json(result.recordset[0]);
   } catch (err) {
-    res.status(500).json({ message: "Lỗi server" });
-  }
-});
-
-// POST /api/cuocthi/sync-status – Tự động UPDATE TrangThai theo thời gian thực
-router.post("/sync-status", async (req, res) => {
-  try {
-    const pool = await getPool();
-
-    await pool.request().query(`
-      UPDATE CUOCTHI
-      SET TrangThai = CASE
-        WHEN GETDATE() > ThoiGianKetThuc
-          THEN N'Đã kết thúc'
-        WHEN GETDATE() >= ThoiGianBatDau
-         AND GETDATE() <= ThoiGianKetThuc
-         AND DATEDIFF(HOUR, GETDATE(), ThoiGianKetThuc) < 24
-          THEN N'Sắp đóng'
-        WHEN GETDATE() >= ThoiGianBatDau
-         AND GETDATE() <= ThoiGianKetThuc
-          THEN N'Đang mở'
-        ELSE N'Mở sớm'
-      END
-      WHERE TrangThai <> N'Đã kết thúc'
-         OR GETDATE() <= ThoiGianKetThuc
-    `);
-
-    const result = await pool.request().query(`
-      SELECT * FROM VW_CUOCTHI_SOLUONG ORDER BY ThoiGianBatDau DESC
-    `);
-    res.json(result.recordset);
-  } catch (err) {
-    console.error("[/cuocthi/sync-status]", err);
     res.status(500).json({ message: "Lỗi server" });
   }
 });
@@ -102,14 +133,21 @@ router.post("/", verifyToken, requireRole("admin", "cb"), async (req, res) => {
       .input("ThoiGianKetThuc", sql.DateTime, new Date(ThoiGianKetThuc))
       .input("SoLuongToiDa", sql.Int, SoLuongToiDa)
       .input("MoTa", sql.NVarChar, MoTa)
-      .input("TrangThai", sql.NVarChar, TrangThai || "Mở sớm")
       .input("MaGV", sql.NVarChar, MaGV).query(`
         INSERT INTO CUOCTHI
           (MaCuocThi, TenCuocThi, LoaiCuocThi, DonViToChuc, DiaDiem,
            ThoiGianBatDau, ThoiGianKetThuc, SoLuongToiDa, MoTa, TrangThai, MaGV)
         VALUES
           (@maCT, @TenCuocThi, @LoaiCuocThi, @DonViToChuc, @DiaDiem,
-           @ThoiGianBatDau, @ThoiGianKetThuc, @SoLuongToiDa, @MoTa, @TrangThai, @MaGV)
+           @ThoiGianBatDau, @ThoiGianKetThuc, @SoLuongToiDa, @MoTa,
+           CASE
+             WHEN GETDATE() > @ThoiGianKetThuc THEN N'Đã kết thúc'
+             WHEN GETDATE() >= @ThoiGianBatDau
+               AND DATEDIFF(SECOND, GETDATE(), @ThoiGianKetThuc) < 86400 THEN N'Sắp đóng'
+             WHEN GETDATE() >= @ThoiGianBatDau THEN N'Đang mở'
+             ELSE N'Mở sớm'
+           END,
+           @MaGV)
       `);
 
     await logAction(
@@ -141,7 +179,6 @@ router.put(
       ThoiGianKetThuc,
       SoLuongToiDa,
       MoTa,
-      TrangThai,
     } = req.body;
 
     try {
@@ -156,13 +193,19 @@ router.put(
         .input("ThoiGianBatDau", sql.DateTime, new Date(ThoiGianBatDau))
         .input("ThoiGianKetThuc", sql.DateTime, new Date(ThoiGianKetThuc))
         .input("SoLuongToiDa", sql.Int, SoLuongToiDa)
-        .input("MoTa", sql.NVarChar, MoTa)
-        .input("TrangThai", sql.NVarChar, TrangThai).query(`
+        .input("MoTa", sql.NVarChar, MoTa).query(`
         UPDATE CUOCTHI SET
           TenCuocThi=@TenCuocThi, LoaiCuocThi=@LoaiCuocThi,
           DonViToChuc=@DonViToChuc, DiaDiem=@DiaDiem,
           ThoiGianBatDau=@ThoiGianBatDau, ThoiGianKetThuc=@ThoiGianKetThuc,
-          SoLuongToiDa=@SoLuongToiDa, MoTa=@MoTa, TrangThai=@TrangThai
+          SoLuongToiDa=@SoLuongToiDa, MoTa=@MoTa,
+          TrangThai = CASE
+            WHEN GETDATE() > @ThoiGianKetThuc THEN N'Đã kết thúc'
+            WHEN GETDATE() >= @ThoiGianBatDau
+              AND DATEDIFF(SECOND, GETDATE(), @ThoiGianKetThuc) < 86400 THEN N'Sắp đóng'
+            WHEN GETDATE() >= @ThoiGianBatDau THEN N'Đang mở'
+            ELSE N'Mở sớm'
+          END
         WHERE MaCuocThi = @id
       `);
 

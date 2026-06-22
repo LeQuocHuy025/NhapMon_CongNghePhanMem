@@ -7,18 +7,9 @@ let _contestData = []; // cache dữ liệu cuộc thi hiện tại
 let _contestStatusTimer = null; // setInterval handle để cập nhật badge live
 
 // =============================================================================
-// HÀM TÍNH TRẠNG THÁI THEO THỜI GIAN THỰC (phía client)
-// Dùng để cập nhật badge mà không cần gọi API lại
+// HÀM TÍNH TRẠNG THÁI THEO THỜI GIAN THỰC (phía client – chỉ dùng để hiển thị)
 // =============================================================================
 
-/**
- * Tính TrangThai của một cuộc thi dựa vào thời gian hiện tại.
- * Logic khớp với SQL CASE trong backend sync-status.
- *   - Chưa đến giờ bắt đầu               → "Mở sớm"
- *   - Đang diễn ra, còn > 24h kết thúc   → "Đang mở"
- *   - Đang diễn ra, còn ≤ 24h kết thúc   → "Sắp đóng"
- *   - Đã qua giờ kết thúc                → "Đã kết thúc"
- */
 function computeTrangThai(thoiGianBatDau, thoiGianKetThuc) {
   const now = Date.now();
   const batDau = new Date(thoiGianBatDau).getTime();
@@ -31,11 +22,6 @@ function computeTrangThai(thoiGianBatDau, thoiGianKetThuc) {
   return "Mở sớm";
 }
 
-/**
- * Cập nhật tất cả badge trạng thái trong bảng theo thời gian thực.
- * Chạy mỗi 60 giây qua setInterval.
- * Không re-render toàn bộ bảng (chỉ đổi text + class badge).
- */
 function _refreshContestStatusBadges() {
   _contestData.forEach((ct) => {
     const badge = document.querySelector(
@@ -47,18 +33,13 @@ function _refreshContestStatusBadges() {
     const oldStatus = ct.TrangThai;
 
     if (newStatus !== oldStatus) {
-      ct.TrangThai = newStatus; // cập nhật cache
+      ct.TrangThai = newStatus;
       badge.textContent = newStatus;
       badge.className = `badge ${badgeClass(newStatus)} status-badge`;
     }
   });
 }
 
-/**
- * Dừng timer cập nhật trạng thái (gọi khi rời khỏi màn hình).
- * Router.go() sẽ re-render innerHTML, nên timer cũ không còn tham chiếu DOM.
- * Để an toàn, gọi hàm này trước khi navigate.
- */
 function stopContestStatusTimer() {
   if (_contestStatusTimer) {
     clearInterval(_contestStatusTimer);
@@ -67,12 +48,31 @@ function stopContestStatusTimer() {
 }
 
 // =============================================================================
-// QUẢN LÝ CUỘC THI (admin / cb) – xem, thêm, sửa, xóa
+// ẨN/HIỆN UI THEO ROLE
 // =============================================================================
 
-/** Tải danh sách cuộc thi, populate filter dropdowns, render bảng */
+function _toggleContestAdminUI() {
+  const isSV = currentUser?.role === "sv";
+
+  document.querySelectorAll(".content .btn-primary").forEach((btn) => {
+    if (btn.getAttribute("onclick") === "addContest()") {
+      btn.style.display = isSV ? "none" : "";
+    }
+  });
+
+  const ths = document.querySelectorAll(".content table thead th");
+  const lastTh = ths[ths.length - 1];
+  if (lastTh && lastTh.textContent.trim() === "Thao tác") {
+    lastTh.style.display = isSV ? "none" : "";
+  }
+}
+
+// =============================================================================
+// QUẢN LÝ CUỘC THI
+// =============================================================================
+
 async function screenContests() {
-  stopContestStatusTimer(); // dừng timer cũ nếu có
+  stopContestStatusTimer();
 
   const tbody = document.getElementById("contests-tbody");
   if (tbody) {
@@ -82,26 +82,22 @@ async function screenContests() {
   }
 
   try {
-    // Gọi sync-status trước để DB cập nhật TrangThai theo thời gian thực,
-    // sau đó lấy danh sách mới nhất đã được sync
     let data;
     try {
       data = await API.post("/cuocthi/sync-status", {});
     } catch (_) {
-      // Nếu sync thất bại (không có quyền, mất mạng...) thì fallback GET thường
       data = await API.get("/cuocthi");
     }
 
-    // Ghi đè TrangThai bằng giá trị tính từ thời gian thực (phía client)
-    // để đảm bảo hiển thị chính xác ngay lập tức
+    // TrangThai từ server là chuẩn; client chỉ override nếu server không trả về
     _contestData = data.map((ct) => ({
       ...ct,
-      TrangThai: computeTrangThai(ct.ThoiGianBatDau, ct.ThoiGianKetThuc),
+      TrangThai:
+        ct.TrangThai || computeTrangThai(ct.ThoiGianBatDau, ct.ThoiGianKetThuc),
     }));
 
-    // Populate dropdown lọc theo loại cuộc thi (luôn populate lại sau mỗi navigate)
     const loaiSelect = document.getElementById("filter-loai");
-    if (loaiSelect) {
+    if (loaiSelect && loaiSelect.options.length === 0) {
       const dsLoai = [
         ...new Set(_contestData.map((ct) => ct.LoaiCuocThi).filter(Boolean)),
       ];
@@ -112,9 +108,8 @@ async function screenContests() {
           .join("");
     }
 
-    // Populate dropdown lọc theo trạng thái
     const trangThaiSelect = document.getElementById("filter-trangthai");
-    if (trangThaiSelect) {
+    if (trangThaiSelect && trangThaiSelect.options.length === 0) {
       const dsTrangThai = ["Mở sớm", "Đang mở", "Sắp đóng", "Đã kết thúc"];
       trangThaiSelect.innerHTML =
         `<option value="all">Tất cả trạng thái</option>` +
@@ -125,7 +120,6 @@ async function screenContests() {
 
     _renderContestsTable();
 
-    // Khởi động timer cập nhật badge mỗi 60 giây
     _contestStatusTimer = setInterval(() => {
       _refreshContestStatusBadges();
     }, 60 * 1000);
@@ -139,7 +133,6 @@ async function screenContests() {
   }
 }
 
-/** Render bảng từ _contestData với bộ lọc hiện tại */
 function _renderContestsTable() {
   const keyword =
     document.getElementById("search-contest")?.value.toLowerCase() || "";
@@ -158,10 +151,13 @@ function _renderContestsTable() {
   const tbody = document.getElementById("contests-tbody");
   if (!tbody) return;
 
+  const isSV = currentUser?.role === "sv";
+
   if (!filtered.length) {
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;opacity:.5;padding:24px">
+    tbody.innerHTML = `<tr><td colspan="${isSV ? 8 : 9}" style="text-align:center;opacity:.5;padding:24px">
       Không tìm thấy cuộc thi nào
     </td></tr>`;
+    _toggleContestAdminUI();
     return;
   }
 
@@ -181,17 +177,23 @@ function _renderContestsTable() {
             ${ct.TrangThai}
           </span>
         </td>
+        ${
+          isSV
+            ? ""
+            : `
         <td class="action-cell">
           <button class="btn btn-sm" onclick="editContest('${ct.MaCuocThi}')">Sửa</button>
           <button class="btn btn-sm btn-danger" onclick="deleteContest('${ct.MaCuocThi}')">Xóa</button>
-        </td>
+        </td>`
+        }
       </tr>
     `,
     )
     .join("");
+
+  _toggleContestAdminUI();
 }
 
-/** Xóa cuộc thi sau khi xác nhận, sau đó reload bảng */
 async function deleteContest(id) {
   if (!confirm("Xóa cuộc thi này?")) return;
   try {
@@ -202,13 +204,11 @@ async function deleteContest(id) {
   }
 }
 
-/** Mở modal thêm mới cuộc thi */
 async function addContest() {
   editingContestId = null;
   document.getElementById("edit-ten").value = "";
   document.getElementById("edit-loai").value = "";
   document.getElementById("edit-diadiem").value = "";
-  document.getElementById("edit-trangthai").value = "Mở sớm";
   document.getElementById("edit-batdau").value = "";
   document.getElementById("edit-ketthuc").value = "";
   document.getElementById("edit-soluong").value = "";
@@ -219,7 +219,6 @@ async function addContest() {
   document.getElementById("contest-modal").style.display = "flex";
 }
 
-/** Tải thông tin cuộc thi lên modal để chỉnh sửa */
 async function editContest(id) {
   try {
     const old = await API.get("/cuocthi/" + id);
@@ -227,7 +226,6 @@ async function editContest(id) {
     document.getElementById("edit-ten").value = old.TenCuocThi || "";
     document.getElementById("edit-loai").value = old.LoaiCuocThi || "";
     document.getElementById("edit-diadiem").value = old.DiaDiem || "";
-    document.getElementById("edit-trangthai").value = old.TrangThai || "";
     document.getElementById("edit-batdau").value = old.ThoiGianBatDau
       ? old.ThoiGianBatDau.slice(0, 16)
       : "";
@@ -246,21 +244,20 @@ async function editContest(id) {
   }
 }
 
-/** Lưu cuộc thi: thêm mới hoặc cập nhật */
 async function saveContest() {
   try {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+    const batDauVal = document.getElementById("edit-batdau").value;
+    const ketThucVal = document.getElementById("edit-ketthuc").value;
+
+    // ✅ KHÔNG gửi TrangThai – server tự tính bằng SQL CASE theo thời gian thực
     const payload = {
       TenCuocThi: document.getElementById("edit-ten").value,
       LoaiCuocThi: document.getElementById("edit-loai").value,
       DiaDiem: document.getElementById("edit-diadiem").value,
-      TrangThai: document.getElementById("edit-trangthai").value,
-      ThoiGianBatDau: new Date(
-        document.getElementById("edit-batdau").value,
-      ).toISOString(),
-      ThoiGianKetThuc: new Date(
-        document.getElementById("edit-ketthuc").value,
-      ).toISOString(),
+      ThoiGianBatDau: new Date(batDauVal).toISOString(),
+      ThoiGianKetThuc: new Date(ketThucVal).toISOString(),
       SoLuongToiDa: parseInt(document.getElementById("edit-soluong").value),
       DonViToChuc: "HVCS",
       MoTa: "",
@@ -284,13 +281,12 @@ async function saveContest() {
   }
 }
 
-/** Đóng modal cuộc thi */
 function closeContestModal() {
   document.getElementById("contest-modal").style.display = "none";
 }
 
 // =============================================================================
-// CUỘC THI CHO GIẢNG VIÊN (chỉ xem, không thêm/sửa/xóa)
+// CUỘC THI CHO GIẢNG VIÊN (chỉ xem)
 // =============================================================================
 
 let _gvContestData = [];
@@ -331,13 +327,12 @@ async function screenGvContests() {
   try {
     const data = await API.get("/cuocthi");
 
-    // Tính lại TrangThai từ thời gian thực
     _gvContestData = data.map((ct) => ({
       ...ct,
-      TrangThai: computeTrangThai(ct.ThoiGianBatDau, ct.ThoiGianKetThuc),
+      TrangThai:
+        ct.TrangThai || computeTrangThai(ct.ThoiGianBatDau, ct.ThoiGianKetThuc),
     }));
 
-    // Populate dropdown Loại
     const loaiSel = document.getElementById("filter-gv-loai");
     if (loaiSel) {
       const dsLoai = [
@@ -348,7 +343,6 @@ async function screenGvContests() {
         dsLoai.map((l) => `<option value="${l}">${l}</option>`).join("");
     }
 
-    // Populate dropdown Trạng thái
     const ttSel = document.getElementById("filter-gv-trangthai");
     if (ttSel) {
       ttSel.innerHTML = `
@@ -362,7 +356,6 @@ async function screenGvContests() {
 
     _renderGvContestsTable();
 
-    // Timer cập nhật badge mỗi 60 giây
     _gvContestStatusTimer = setInterval(() => {
       _refreshGvContestStatusBadges();
     }, 60 * 1000);
