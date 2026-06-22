@@ -1,16 +1,17 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const helmet = require("helmet");
 const app = express();
+const path = require("path");
 // ── Middleware toàn cục ─────────────────────────────
-app.use(helmet());
+// helmet disabled for development (allow external CDN)
 app.use(
   cors({
     origin: "*", // production: thay bằng domain frontend
     methods: ["GET", "POST", "PUT", "DELETE"],
   }),
 );
+
 app.use(express.json());
 
 // ── Routes ──────────────────────────────────────────
@@ -25,6 +26,7 @@ app.use("/api/nhatky", require("./src/routes/nhatky"));
 app.use("/api/dashboard", require("./src/routes/dashboard"));
 app.use("/api/giangvien", require("./src/routes/giangvien"));
 app.use("/api/baocao", require("./src/routes/baocao"));
+app.use(express.static(path.join(__dirname, "../frontend")));
 
 // ── Global error handler ────────────────────────────
 app.use((err, req, res, next) => {
