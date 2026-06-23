@@ -26,6 +26,7 @@ app.use("/api/nhatky", require("./src/routes/nhatky"));
 app.use("/api/dashboard", require("./src/routes/dashboard"));
 app.use("/api/giangvien", require("./src/routes/giangvien"));
 app.use("/api/baocao", require("./src/routes/baocao"));
+app.use("/api/khoa", require("./src/routes/khoa"));
 app.use(express.static(path.join(__dirname, "../frontend")));
 // ── Global error handler ────────────────────────────
 app.use((err, req, res, next) => {

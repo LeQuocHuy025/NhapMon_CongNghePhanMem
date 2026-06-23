@@ -331,6 +331,7 @@
                 <th>Bắt đầu</th>
                 <th>Kết thúc</th>
                 <th>Địa điểm</th>
+                <th>Đơn vị tổ chức</th>
                 <th>Đăng ký</th>
                 <th>Trạng thái</th>
                 <th>Thao tác</th>
@@ -970,6 +971,97 @@
           </table>
         </div>
       </section>
+
+      <!-- ===== ĐĂNG KÝ THAM GIA (Sinh viên) ===== -->
+      <section id="tpl-my-registration">
+        <div class="toolbar">
+          <div class="section-title">Đăng ký tham gia cuộc thi</div>
+        </div>
+
+        <!-- Form đăng ký -->
+        <div class="card" style="margin-bottom: 16px; padding: 20px">
+          <div style="display: flex; gap: 12px; align-items: flex-end">
+            <div style="flex: 1">
+              <label
+                style="
+                  display: block;
+                  margin-bottom: 6px;
+                  font-size: 13px;
+                  color: #aaa;
+                "
+              >
+                Chọn cuộc thi
+              </label>
+              <select
+                id="select-cuoc-thi"
+                class="form-select"
+                style="width: 100%"
+              >
+                <option value="">-- Đang tải danh sách cuộc thi --</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" onclick="submitDangKy()">
+              <i class="ti ti-user-plus"></i> Đăng ký
+            </button>
+          </div>
+        </div>
+
+        <!-- Danh sách đăng ký của SV -->
+        <div class="section-title" style="font-size: 14px; margin-bottom: 10px">
+          Đăng ký của tôi
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Tên cuộc thi</th>
+                <th>Ngày đăng ký</th>
+                <th>GV xác nhận</th>
+                <th>Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody id="my-registration-tbody">
+              <tr>
+                <td
+                  colspan="4"
+                  style="text-align: center; opacity: 0.4; padding: 24px"
+                >
+                  <i class="ti ti-loader ti-spin"></i> Đang tải...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <!-- ===== HỦY ĐĂNG KÝ (Sinh viên) ===== -->
+      <section id="tpl-cancel-registration">
+        <div class="toolbar">
+          <div class="section-title">Hủy đăng ký tham gia</div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Khoa</th>
+                <th>Tên cuộc thi</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="cancel-tbody">
+              <tr>
+                <td
+                  colspan="4"
+                  style="text-align: center; opacity: 0.4; padding: 24px"
+                >
+                  <i class="ti ti-loader ti-spin"></i> Đang tải...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
       <!-- ===== CUỘC THI CHO GIẢNG VIÊN (xem, không sửa/xóa/thêm) ===== -->
       <section id="tpl-gv-contests">
         <div class="toolbar">
@@ -1008,6 +1100,7 @@
                 <th>Bắt đầu</th>
                 <th>Kết thúc</th>
                 <th>Địa điểm</th>
+                <th>Đơn vị tổ chức</th>
                 <th>Đăng ký</th>
                 <th>Trạng thái</th>
               </tr>
@@ -1152,6 +1245,12 @@
           <label class="form-label">Loại cuộc thi</label>
 
           <input type="text" id="edit-loai" class="form-input" />
+        </div>
+        <div class="form-row">
+          <label class="form-label">Đơn vị tổ chức</label>
+          <select id="edit-donvitochuc" class="form-input">
+            <option value="HVCS">HVCS (Toàn trường)</option>
+          </select>
         </div>
 
         <div class="form-row">

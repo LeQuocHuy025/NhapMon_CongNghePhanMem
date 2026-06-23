@@ -171,6 +171,7 @@ function _renderContestsTable() {
         <td>${formatDate(ct.ThoiGianBatDau)}</td>
         <td>${formatDate(ct.ThoiGianKetThuc)}</td>
         <td>${ct.DiaDiem || "-"}</td>
+        <td>${ct.DonViToChuc || "-"}</td>
         <td>${ct.SoLuongDaDangKy || 0}/${ct.SoLuongToiDa || 0}</td>
         <td>
           <span class="badge ${badgeClass(ct.TrangThai)} status-badge">
@@ -204,6 +205,24 @@ async function deleteContest(id) {
   }
 }
 
+/** Load danh sách khoa vào dropdown #edit-donvitochuc */
+async function _loadKhoaOptions(selectedValue) {
+  const sel = document.getElementById("edit-donvitochuc");
+  if (!sel) return;
+  try {
+    const khoaList = await API.get("/khoa");
+    sel.innerHTML =
+      `<option value="HVCS">HVCS (Toàn trường)</option>` +
+      khoaList
+        .map((k) => `<option value="${k.TenKhoa}">${k.TenKhoa}</option>`)
+        .join("");
+    sel.value = selectedValue || "HVCS";
+  } catch (e) {
+    // Nếu lỗi thì giữ nguyên option mặc định HVCS
+    console.warn("Không load được danh sách khoa:", e.message);
+  }
+}
+
 async function addContest() {
   editingContestId = null;
   document.getElementById("edit-ten").value = "";
@@ -212,6 +231,7 @@ async function addContest() {
   document.getElementById("edit-batdau").value = "";
   document.getElementById("edit-ketthuc").value = "";
   document.getElementById("edit-soluong").value = "";
+  await _loadKhoaOptions("HVCS");
   document.querySelector("#contest-modal .section-title").textContent =
     "Thêm cuộc thi";
   document.querySelector("#contest-modal .btn.btn-primary").textContent =
@@ -233,6 +253,7 @@ async function editContest(id) {
       ? old.ThoiGianKetThuc.slice(0, 16)
       : "";
     document.getElementById("edit-soluong").value = old.SoLuongToiDa || 0;
+    await _loadKhoaOptions(old.DonViToChuc || "HVCS");
     document.querySelector("#contest-modal .section-title").textContent =
       "Sửa cuộc thi";
     document.querySelector("#contest-modal .btn.btn-primary").textContent =
@@ -259,7 +280,7 @@ async function saveContest() {
       ThoiGianBatDau: new Date(batDauVal).toISOString(),
       ThoiGianKetThuc: new Date(ketThucVal).toISOString(),
       SoLuongToiDa: parseInt(document.getElementById("edit-soluong").value),
-      DonViToChuc: "HVCS",
+      DonViToChuc: document.getElementById("edit-donvitochuc")?.value || "HVCS",
       MoTa: "",
       MaGV: user.MaGV || user.maGV || null,
     };
@@ -404,6 +425,7 @@ function _renderGvContestsTable() {
         <td>${formatDate(ct.ThoiGianBatDau)}</td>
         <td>${formatDate(ct.ThoiGianKetThuc)}</td>
         <td>${ct.DiaDiem || "-"}</td>
+        <td>${ct.DonViToChuc || "-"}</td>
         <td>${ct.SoLuongDaDangKy || 0}/${ct.SoLuongToiDa || 0}</td>
         <td>
           <span class="badge ${badgeClass(ct.TrangThai)} status-badge">
