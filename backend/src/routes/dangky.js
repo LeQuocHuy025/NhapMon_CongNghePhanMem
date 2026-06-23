@@ -31,13 +31,22 @@ router.get("/my", verifyToken, requireRole("sv"), async (req, res) => {
     const result = await pool
       .request()
       .input("maTK", sql.NVarChar, req.user.maTK).query(`
-        SELECT dk.*, ct.TenCuocThi, ct.ThoiGianBatDau, ct.DiaDiem
-        FROM DANGKY_THAMGIA dk
-        JOIN CUOCTHI ct ON dk.MaCuocThi = ct.MaCuocThi
-        JOIN SINHVIEN sv ON dk.MaSV = sv.MaSV
-        WHERE sv.MaTK = @maTK
-        ORDER BY dk.NgayDangKy DESC
-      `);
+          SELECT
+            dk.MaDangKy,
+            dk.NgayDangKy,
+            dk.TrangThaiGV,
+            dk.TrangThai,
+            ct.MaCuocThi,
+            ct.TenCuocThi,
+            ct.ThoiGianBatDau,
+            ct.DiaDiem,
+            ct.DonViToChuc
+          FROM DANGKY_THAMGIA dk
+          JOIN CUOCTHI  ct ON dk.MaCuocThi = ct.MaCuocThi
+          JOIN SINHVIEN sv ON dk.MaSV      = sv.MaSV
+          WHERE sv.MaTK = @maTK
+          ORDER BY dk.NgayDangKy DESC
+        `);
     res.json(result.recordset);
   } catch (err) {
     res.status(500).json({ message: "Lỗi server" });

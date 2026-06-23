@@ -515,7 +515,7 @@ async function screenCancelRegistration() {
       .map(
         (dk) => `
         <tr>
-          <td>${dk.TenKhoa}</td>
+          <td>${dk.DonViToChuc || "-"}</td>
           <td>${dk.TenCuocThi}</td>
           <td><span class="badge ${badgeClass(dk.TrangThai)}">${dk.TrangThai}</span></td>
           <td class="action-cell">
