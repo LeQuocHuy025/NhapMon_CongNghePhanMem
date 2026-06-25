@@ -124,8 +124,19 @@
   <body>
     <div class="login-container" id="login-container">
       <div class="login-card">
-        <div class="login-title">🏆 HVCS Thi</div>
-
+        <div style="text-align: center; margin-bottom: 16px">
+          <img
+            src="assets/logo-ptit.png"
+            alt="Học viện Công nghệ Bưu chính Viễn thông"
+            style="
+              width: 100%;
+              max-width: 67px;
+              height: auto;
+              display: block;
+              margin: 0 auto;
+            "
+          />
+        </div>
         <div class="login-subtitle">Hệ thống quản lý cuộc thi sinh viên</div>
 
         <div class="login-err" id="login-err-msg" style="display: none">
@@ -295,7 +306,11 @@
       <section id="tpl-contests">
         <div class="toolbar">
           <div class="section-title">Danh sách cuộc thi</div>
-          <button class="btn btn-primary" onclick="addContest()">
+          <button
+            class="btn btn-primary"
+            style="display: none"
+            onclick="addContest()"
+          >
             <i class="ti ti-plus" aria-hidden="true"></i>
             Thêm cuộc thi
           </button>
@@ -433,29 +448,28 @@
           <button
             id="btn-import-result"
             class="btn btn-primary"
+            style="display: none"
             onclick="document.getElementById('import-result-file').click()"
           >
             Nhập kết quả
           </button>
         </div>
         <div class="two-col mb-14">
-          <div class="card">
-            <div class="form-row">
-              <label>Chọn cuộc thi</label>
-
-              <input
-                id="search-result-contest"
-                class="form-input"
-                placeholder="Tìm cuộc thi..."
-                oninput="filterContestOptions()"
-              />
-
-              <select
-                id="result-contest"
-                class="form-select"
-                onchange="loadResultContest()"
-              ></select>
-            </div>
+          <div
+            class="card"
+            style="display: flex; flex-direction: column; gap: 10px"
+          >
+            <input
+              id="search-result-keyword"
+              class="form-input"
+              placeholder="Tìm theo Mã SV, Họ tên, Lớp, Khoa, Cuộc thi..."
+              oninput="filterResultTable()"
+            />
+            <select
+              id="result-contest"
+              class="form-select"
+              onchange="filterResultTable()"
+            ></select>
           </div>
           <div class="card stat-row">
             <div class="stat-mini">

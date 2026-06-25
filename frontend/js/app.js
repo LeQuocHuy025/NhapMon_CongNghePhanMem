@@ -59,8 +59,13 @@ function startUserSession(user) {
   currentUser = user;
 
   document.getElementById("login-container").style.display = "none";
-
   document.getElementById("main-app-layout").style.display = "flex";
+
+  // Ẩn nút "Đổi mật khẩu" với tài khoản khách
+  const btnDoiMK = document.querySelector(
+    '.topbar-actions .btn[onclick="showChangePassword()"]',
+  );
+  if (btnDoiMK) btnDoiMK.style.display = user.role === "guest" ? "none" : "";
 
   RoleManager.switchTo(user.role);
 }

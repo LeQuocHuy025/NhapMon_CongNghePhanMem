@@ -503,6 +503,15 @@ async function submitDangKy() {
 // Sinh viên xem và hủy các đăng ký của mình
 // =============================================================================
 
+/** Kiểm tra SV còn được phép hủy không (phải trước ngày thi 2 ngày) */
+function canCancelRegistration(thoiGianBatDau) {
+  if (!thoiGianBatDau) return true; // không có ngày thì cho hủy
+  const deadline = new Date(thoiGianBatDau);
+  deadline.setDate(deadline.getDate() - 2);
+  deadline.setHours(0, 0, 0, 0);
+  return new Date() < deadline;
+}
+
 /** Tải danh sách đăng ký của SV (trừ đã bị từ chối) và render bảng */
 async function screenCancelRegistration() {
   try {
@@ -512,25 +521,39 @@ async function screenCancelRegistration() {
 
     tbody.innerHTML = myList
       .filter((dk) => dk.TrangThai !== "Từ chối")
-      .map(
-        (dk) => `
-        <tr>
-          <td>${dk.DonViToChuc || "-"}</td>
-          <td>${dk.TenCuocThi}</td>
-          <td><span class="badge ${badgeClass(dk.TrangThai)}">${dk.TrangThai}</span></td>
-          <td class="action-cell">
-            <button class="btn btn-sm btn-danger"
-              onclick="huyDangKy('${dk.MaDangKy}')">Hủy</button>
-          </td>
-        </tr>
-      `,
-      )
+      .map((dk) => {
+        const coTheHuy = canCancelRegistration(dk.ThoiGianBatDau);
+        const deadline = dk.ThoiGianBatDau
+          ? (() => {
+              const d = new Date(dk.ThoiGianBatDau);
+              d.setDate(d.getDate() - 2);
+              return d.toLocaleDateString("vi-VN");
+            })()
+          : null;
+
+        return `
+          <tr>
+            <td>${dk.DonViToChuc || "-"}</td>
+            <td>${dk.TenCuocThi}</td>
+            <td><span class="badge ${badgeClass(dk.TrangThai)}">${dk.TrangThai}</span></td>
+            <td class="action-cell">
+              ${
+                coTheHuy
+                  ? `<button class="btn btn-sm btn-danger"
+                      onclick="huyDangKy('${dk.MaDangKy}')">Hủy</button>`
+                  : `<span style="color:#ef4444;font-size:12px" title="Đã qua hạn hủy (${deadline})">
+                      <i class="ti ti-lock"></i> Hết hạn hủy
+                    </span>`
+              }
+            </td>
+          </tr>
+        `;
+      })
       .join("");
   } catch (e) {
     console.error(e);
   }
 }
-
 /** Hủy đăng ký sau khi xác nhận, sau đó reload bảng */
 async function huyDangKy(id) {
   if (!confirm("Hủy đăng ký này?")) return;

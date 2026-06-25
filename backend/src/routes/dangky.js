@@ -84,8 +84,30 @@ router.post("/", verifyToken, requireRole("sv"), async (req, res) => {
       return res
         .status(400)
         .json({ message: "Bạn đã đăng ký cuộc thi này rồi" });
+    //THÊM MỚI: Kiểm tra còn slot không
+    const slotRes = await pool.request().input("maCT", sql.NVarChar, MaCuocThi)
+      .query(`
+        SELECT 
+          ct.SoLuongToiDa,
+          COUNT(dk.MaDangKy) AS SoLuongDaDangKy
+        FROM CUOCTHI ct
+        LEFT JOIN DANGKY_THAMGIA dk 
+          ON ct.MaCuocThi = dk.MaCuocThi 
+          AND dk.TrangThai <> N'Từ chối'
+        WHERE ct.MaCuocThi = @maCT
+        GROUP BY ct.SoLuongToiDa
+      `);
 
-    const maDK = "DK" + Date.now();
+    if (slotRes.recordset.length > 0) {
+      const { SoLuongToiDa, SoLuongDaDangKy } = slotRes.recordset[0];
+      if (SoLuongToiDa && SoLuongDaDangKy >= SoLuongToiDa) {
+        return res.status(400).json({
+          message: `Cuộc thi đã đủ số lượng (${SoLuongDaDangKy}/${SoLuongToiDa} người). Không thể đăng ký thêm.`,
+        });
+      }
+    }
+
+    const maDK = "DK" + Date.now().toString().slice(-8); // "DK" + 8 số cuối
     await pool
       .request()
       .input("maDK", sql.NVarChar, maDK)
@@ -103,7 +125,11 @@ router.post("/", verifyToken, requireRole("sv"), async (req, res) => {
     res.status(201).json({ message: "Đăng ký thành công", MaDangKy: maDK });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Lỗi server" });
+    res.status(500).json({
+      message: "Lỗi server",
+      detail: err.message, // ← thêm dòng này
+      sql: err.originalError?.info, // ← và dòng này
+    });
   }
 });
 
@@ -169,6 +195,7 @@ router.put(
 );
 
 // DELETE /api/dangky/:id  – SV hủy đăng ký của chính mình
+// DELETE /api/dangky/:id  – SV hủy đăng ký của chính mình
 router.delete(
   "/:id",
   verifyToken,
@@ -190,12 +217,29 @@ router.delete(
           .input("id", sql.NVarChar, req.params.id)
           .input("maSV", sql.NVarChar, maSV)
           .query(
-            `SELECT MaDangKy FROM DANGKY_THAMGIA WHERE MaDangKy=@id AND MaSV=@maSV`,
+            `SELECT dk.MaDangKy, ct.ThoiGianBatDau
+             FROM DANGKY_THAMGIA dk
+             JOIN CUOCTHI ct ON dk.MaCuocThi = ct.MaCuocThi
+             WHERE dk.MaDangKy=@id AND dk.MaSV=@maSV`,
           );
+
         if (check.recordset.length === 0)
           return res
             .status(403)
             .json({ message: "Không có quyền hủy đăng ký này" });
+
+        // ✅ Kiểm tra deadline: không được hủy trong 2 ngày cuối trước khi thi
+        const thoiGianBatDau = new Date(check.recordset[0].ThoiGianBatDau);
+        const now = new Date();
+        const deadline = new Date(thoiGianBatDau);
+        deadline.setDate(deadline.getDate() - 2); // deadline = ngày thi - 2 ngày
+        deadline.setHours(0, 0, 0, 0); // tính từ đầu ngày
+
+        if (now >= deadline) {
+          return res.status(400).json({
+            message: `Không thể hủy đăng ký. Chỉ được hủy trước ngày ${deadline.toLocaleDateString("vi-VN")} (2 ngày trước khi thi).`,
+          });
+        }
       }
 
       await pool

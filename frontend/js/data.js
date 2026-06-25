@@ -77,8 +77,7 @@ const ROLES = {
     label: "Khách",
     badgeCls: "role-guest",
     initials: "G",
-
-    screens: ["dashboard", "contests", "results"],
+    screens: ["contests", "results"],
   },
 };
 

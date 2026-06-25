@@ -4,7 +4,7 @@
    ========================================================= */
 
 const RoleManager = (() => {
-  let _activeRole = 'admin';
+  let _activeRole = "admin";
 
   /**
    * Switch the UI to the given role.
@@ -18,16 +18,16 @@ const RoleManager = (() => {
     _activeRole = roleKey;
 
     // Update role badge in sidebar
-    const badge = document.getElementById('role-display');
+    const badge = document.getElementById("role-display");
     badge.textContent = role.label;
     badge.className = `role-badge ${role.badgeCls}`;
 
     // Update user avatar initials
-    document.getElementById('user-avatar').textContent = role.initials;
+    document.getElementById("user-avatar").textContent = role.initials;
 
     // Mark active role button in topbar
-    document.querySelectorAll('.role-btn').forEach(btn => {
-      btn.classList.toggle('active-role', btn.dataset.role === roleKey);
+    document.querySelectorAll(".role-btn").forEach((btn) => {
+      btn.classList.toggle("active-role", btn.dataset.role === roleKey);
     });
 
     // Rebuild sidebar navigation for this role
@@ -43,30 +43,30 @@ const RoleManager = (() => {
    * @param {string[]} screenIds
    */
   function _buildNav(screenIds) {
-    const nav = document.getElementById('nav-menu');
-    nav.innerHTML = '';
+    const nav = document.getElementById("nav-menu");
+    nav.innerHTML = "";
 
+    const isGuest = _activeRole === "guest";
     let lastSection = null;
 
-    screenIds.forEach(id => {
+    screenIds.forEach((id) => {
       const meta = NAV_META[id];
       if (!meta) return;
 
-      // Insert section header when section changes
-      if (meta.section !== lastSection) {
-        const header = document.createElement('div');
-        header.className = 'nav-section';
+      // Ẩn section header với guest
+      if (!isGuest && meta.section !== lastSection) {
+        const header = document.createElement("div");
+        header.className = "nav-section";
         header.textContent = meta.section;
         nav.appendChild(header);
         lastSection = meta.section;
       }
 
-      // Nav item
-      const item = document.createElement('div');
-      item.className = 'nav-item';
+      const item = document.createElement("div");
+      item.className = "nav-item";
       item.dataset.screen = id;
       item.innerHTML = `<i class="ti ${meta.icon}" aria-hidden="true"></i> ${meta.label}`;
-      item.addEventListener('click', () => Router.go(id));
+      item.addEventListener("click", () => Router.go(id));
       nav.appendChild(item);
     });
   }

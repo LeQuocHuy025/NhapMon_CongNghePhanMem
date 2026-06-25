@@ -373,7 +373,25 @@ tr:hover td {
   justify-content: center;
   align-items: center;
   height: 100vh;
-  background: #f1f5f9;
+  position: relative;
+  background-image: url("../assets/bg-ptit.jpg");
+  background-size: cover;
+  background-position: top center;
+  background-color: #000;
+  background-repeat: no-repeat;
+}
+
+.login-container::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 0;
+}
+
+.login-card {
+  position: relative;
+  z-index: 1;
 }
 
 .login-card {

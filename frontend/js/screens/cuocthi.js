@@ -52,19 +52,26 @@ function stopContestStatusTimer() {
 // =============================================================================
 
 function _toggleContestAdminUI() {
-  const isSV = currentUser?.role === "sv";
+  const isSV = currentUser?.role === "sv" || currentUser?.role === "guest";
+  const isGuest = currentUser?.role === "guest";
 
   document.querySelectorAll(".content .btn-primary").forEach((btn) => {
     if (btn.getAttribute("onclick") === "addContest()") {
-      btn.style.display = isSV ? "none" : "";
+      const canAdd =
+        currentUser?.role === "admin" || currentUser?.role === "cb";
+      btn.style.display = canAdd ? "" : "none";
     }
   });
 
   const ths = document.querySelectorAll(".content table thead th");
-  const lastTh = ths[ths.length - 1];
-  if (lastTh && lastTh.textContent.trim() === "Thao tác") {
-    lastTh.style.display = isSV ? "none" : "";
-  }
+  ths.forEach((th) => {
+    if (th.textContent.trim() === "Thao tác") {
+      th.style.display = isSV ? "none" : "";
+    }
+    if (th.textContent.trim() === "Đăng ký") {
+      th.style.display = isGuest ? "none" : "";
+    }
+  });
 }
 
 // =============================================================================
@@ -142,7 +149,9 @@ function _renderContestsTable() {
   const filtered = _contestData.filter((ct) => {
     const matchKeyword =
       ct.TenCuocThi.toLowerCase().includes(keyword) ||
-      ct.MaCuocThi.toLowerCase().includes(keyword);
+      ct.MaCuocThi.toLowerCase().includes(keyword) ||
+      (ct.DiaDiem || "").toLowerCase().includes(keyword) ||
+      (ct.DonViToChuc || "").toLowerCase().includes(keyword);
     const matchLoai = loai === "all" || ct.LoaiCuocThi === loai;
     const matchTrangThai = trangThai === "all" || ct.TrangThai === trangThai;
     return matchKeyword && matchLoai && matchTrangThai;
@@ -151,7 +160,8 @@ function _renderContestsTable() {
   const tbody = document.getElementById("contests-tbody");
   if (!tbody) return;
 
-  const isSV = currentUser?.role === "sv";
+  const isGuest = currentUser?.role === "guest";
+  const isSV = currentUser?.role === "sv" || isGuest;
 
   if (!filtered.length) {
     tbody.innerHTML = `<tr><td colspan="${isSV ? 8 : 9}" style="text-align:center;opacity:.5;padding:24px">
@@ -172,7 +182,7 @@ function _renderContestsTable() {
         <td>${formatDate(ct.ThoiGianKetThuc)}</td>
         <td>${ct.DiaDiem || "-"}</td>
         <td>${ct.DonViToChuc || "-"}</td>
-        <td>${ct.SoLuongDaDangKy || 0}/${ct.SoLuongToiDa || 0}</td>
+        ${!isGuest ? `<td>${ct.SoLuongDaDangKy || 0}/${ct.SoLuongToiDa || 0}</td>` : ""}
         <td>
           <span class="badge ${badgeClass(ct.TrangThai)} status-badge">
             ${ct.TrangThai}
