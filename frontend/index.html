@@ -124,20 +124,9 @@
   <body>
     <div class="login-container" id="login-container">
       <div class="login-card">
-        <div style="text-align: center; margin-bottom: 16px">
-          <img
-            src="assets/logo-ptit.png"
-            alt="Học viện Công nghệ Bưu chính Viễn thông"
-            style="
-              width: 100%;
-              max-width: 67px;
-              height: auto;
-              display: block;
-              margin: 0 auto;
-            "
-          />
+        <div style="text-align: center; margin-bottom: 4px">
+          <div class="login-title">🏆 HỆ THỐNG QUẢN LÝ CUỘC THI</div>
         </div>
-        <div class="login-subtitle">Hệ thống quản lý cuộc thi sinh viên</div>
 
         <div class="login-err" id="login-err-msg" style="display: none">
           Tài khoản hoặc mật khẩu không chính xác!
@@ -171,7 +160,12 @@
           <button
             type="submit"
             class="btn btn-primary"
-            style="width: 100%; justify-content: center; padding: 10px"
+            style="
+              width: 100%;
+              justify-content: center;
+              padding: 10px;
+              color: #ffffff;
+            "
           >
             <i class="ti ti-login"></i>
 
@@ -185,7 +179,7 @@
             onclick="forgotPassword()"
             style="
               font-size: 12px;
-              color: #534ab7;
+              color: #ffffff;
               text-decoration: none;
               font-weight: 500;
             "
@@ -195,12 +189,17 @@
         </div>
 
         <div style="margin-top: 16px; text-align: center">
-          <span style="font-size: 12px; color: #999"> Hoặc </span>
+          <span style="font-size: 12px; color: #ffffff"> Hoặc </span>
         </div>
 
         <button
           class="btn"
-          style="width: 100%; justify-content: center; margin-top: 12px"
+          style="
+            width: 100%;
+            justify-content: center;
+            margin-top: 12px;
+            color: #ffffff;
+          "
           onclick="loginAsGuest()"
         >
           <i class="ti ti-eye"></i>
