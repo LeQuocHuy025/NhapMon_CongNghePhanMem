@@ -1,5 +1,6 @@
 /* =========================================================
    components.css – Reusable UI components
+   (Đồng bộ với dark slate theme cố định)
    ========================================================= */
 
 /* ── Buttons ────────────────────────────────────────── */
@@ -13,7 +14,7 @@
   font-size: 12px;
   font-family: inherit;
   cursor: pointer;
-  background: var(--color-bg);
+  background: var(--color-bg-2);
   color: var(--color-text);
   transition:
     background 0.15s,
@@ -21,19 +22,20 @@
   white-space: nowrap;
 }
 .btn:hover {
-  background: var(--color-bg-2);
+  background: var(--color-bg-4);
 }
 .btn:active {
   transform: scale(0.97);
 }
 
 .btn-primary {
-  background: var(--purple-700);
-  color: var(--purple-50);
-  border-color: var(--purple-700);
+  background: var(--purple-500);
+  color: #fff;
+  border-color: transparent;
 }
 .btn-primary:hover {
-  background: var(--purple-500);
+  background: var(--purple-700);
+  color: #fff;
 }
 
 .btn-sm {
@@ -42,6 +44,10 @@
 }
 .btn-danger {
   color: var(--red-600);
+  border-color: rgba(248, 113, 113, 0.25);
+}
+.btn-danger:hover {
+  background: rgba(248, 113, 113, 0.1);
 }
 
 /* ── Avatar ─────────────────────────────────────────── */
@@ -108,11 +114,11 @@
 }
 .badge-teal {
   background: var(--teal-50);
-  color: var(--teal-800);
+  color: var(--teal-600);
 }
 .badge-silver {
-  background: var(--gray-200);
-  color: var(--gray-700);
+  background: rgba(107, 114, 128, 0.2);
+  color: var(--gray-500);
 }
 .badge-bronze {
   background: var(--coral-100);
@@ -121,7 +127,7 @@
 
 /* ── Cards ──────────────────────────────────────────── */
 .card {
-  background: var(--color-bg);
+  background: var(--color-bg-2);
   border: 0.5px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: 14px;
@@ -136,8 +142,13 @@
 }
 .stat-card {
   background: var(--color-bg-2);
-  border-radius: var(--radius-md);
-  padding: 14px;
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 16px 14px;
+  transition: border-color 0.2s;
+}
+.stat-card:hover {
+  border-color: var(--color-border-md);
 }
 .stat-label {
   font-size: 11px;
@@ -145,14 +156,15 @@
   margin-bottom: 4px;
 }
 .stat-value {
-  font-size: 24px;
-  font-weight: 600;
+  font-size: 26px;
+  font-weight: 700;
   color: var(--color-text);
+  letter-spacing: -0.5px;
 }
 .stat-sub {
   font-size: 11px;
   color: var(--color-text-hint);
-  margin-top: 3px;
+  margin-top: 4px;
 }
 
 /* ── Section title ──────────────────────────────────── */
@@ -165,9 +177,9 @@
 
 /* ── Tables ─────────────────────────────────────────── */
 .table-wrap {
-  background: var(--color-bg);
+  background: var(--color-bg-2);
   border: 0.5px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   overflow: hidden;
   margin-bottom: 16px;
 }
@@ -177,16 +189,18 @@ table {
   font-size: 12px;
 }
 th {
-  background: var(--color-bg-2);
+  background: var(--color-bg-3);
   padding: 8px 12px;
   text-align: left;
   font-size: 11px;
   font-weight: 600;
   color: var(--color-text-muted);
   border-bottom: 0.5px solid var(--color-border);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 td {
-  padding: 8px 12px;
+  padding: 9px 12px;
   color: var(--color-text);
   border-bottom: 0.5px solid var(--color-border);
   vertical-align: middle;
@@ -195,7 +209,7 @@ tr:last-child td {
   border-bottom: none;
 }
 tr:hover td {
-  background: var(--color-bg-2);
+  background: var(--color-bg-4);
 }
 
 /* ── Forms ──────────────────────────────────────────── */
@@ -216,15 +230,24 @@ tr:hover td {
   border-radius: var(--radius-md);
   font-size: 13px;
   font-family: inherit;
-  background: var(--color-bg);
+  background: var(--color-bg-4);
   color: var(--color-text);
-  transition: border-color 0.15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.form-input::placeholder {
+  color: var(--color-text-hint);
 }
 .form-input:focus,
 .form-select:focus {
   outline: none;
   border-color: var(--purple-500);
-  box-shadow: 0 0 0 2px rgba(83, 74, 183, 0.15);
+  box-shadow: var(--accent-glow);
+}
+.form-select option {
+  background: var(--color-bg-2);
+  color: var(--color-text);
 }
 .w-auto {
   width: auto;
@@ -237,7 +260,7 @@ tr:hover td {
   gap: 8px;
 }
 .contest-card {
-  background: var(--color-bg);
+  background: var(--color-bg-2);
   border: 0.5px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: 12px 14px;
@@ -245,6 +268,10 @@ tr:hover td {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  transition: border-color 0.15s;
+}
+.contest-card:hover {
+  border-color: var(--color-border-md);
 }
 .contest-name {
   font-size: 13px;
@@ -332,42 +359,39 @@ tr:hover td {
   margin-top: 2px;
 }
 
+/* ── Login page (old, kept for safety) ───────────────── */
 .login-page {
   position: fixed;
   inset: 0;
-  background: #f5f5f5;
+  background: var(--color-bg);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
 }
-
 .login-box {
   width: 360px;
-  background: white;
+  background: var(--color-bg-2);
   padding: 30px;
   border-radius: 12px;
-  box-shadow: 0 5px 30px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 5px 30px rgba(0, 0, 0, 0.4);
 }
-
 .login-title {
   font-size: 26px;
   font-weight: 700;
   text-align: center;
+  color: var(--color-text);
 }
-
 .login-sub {
   text-align: center;
-  color: #666;
+  color: var(--color-text-muted);
   margin-bottom: 25px;
 }
 .app {
   display: none;
 }
-/* =========================================================
-   LOGIN
-   ========================================================= */
 
+/* ── LOGIN (main glassmorphism) ──────────────────────── */
 .login-container {
   display: flex;
   justify-content: center;
@@ -378,7 +402,7 @@ tr:hover td {
   background-image: url("../assets/bg-ptit.jpg");
   background-size: cover;
   background-position: top center;
-  background-color: #000;
+  background-color: #0a0a12;
   background-repeat: no-repeat;
 }
 
@@ -386,37 +410,28 @@ tr:hover td {
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(10, 10, 18, 0.5);
   z-index: 0;
 }
 
 .login-card {
   position: relative;
   z-index: 1;
-}
-
-.login-card {
   width: 100%;
   max-width: 400px;
-
-  /* Glassmorphism */
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
   padding: 20px 40px;
-
   border-radius: 20px;
-
-  border: 1px solid rgba(255, 255, 255, 0.2);
-
+  border: 1px solid rgba(255, 255, 255, 0.13);
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    0 8px 40px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .login-title {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
   text-align: center;
   color: #ffffff;
@@ -424,7 +439,7 @@ tr:hover td {
 
 .login-subtitle {
   text-align: center;
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(255, 255, 255, 0.55);
   margin-top: 6px;
   margin-bottom: 28px;
   font-size: 13px;
@@ -432,69 +447,55 @@ tr:hover td {
 
 .login-err {
   display: none;
-
-  background: rgba(163, 45, 45, 0.25);
-  border: 1px solid rgba(163, 45, 45, 0.5);
-  color: #ffb3b3;
-
+  background: rgba(248, 113, 113, 0.15);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  color: #fca5a5;
   padding: 10px 12px;
-
   border-radius: 10px;
-
   margin-bottom: 14px;
-
   font-size: 12px;
   backdrop-filter: blur(8px);
 }
 
-/* Glassmorphism: label & input bên trong login */
 .login-card .form-label {
-  color: #ffffff;
+  color: rgba(255, 255, 255, 0.8);
 }
-
 .login-card .form-input {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   color: #ffffff;
   border-radius: 10px;
 }
-
 .login-card .form-input::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.35);
 }
-
 .login-card .form-input:focus {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.45);
-  box-shadow: 0 0 0 3px rgba(83, 74, 183, 0.35);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(108, 99, 255, 0.7);
+  box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.25);
   outline: none;
 }
-
 .login-card .btn-primary {
-  background: rgba(83, 74, 183, 0.85);
-  border-color: rgba(83, 74, 183, 0.6);
+  background: var(--purple-500);
+  border-color: transparent;
   color: #fff;
   border-radius: 10px;
   font-size: 14px;
   font-weight: 600;
-  letter-spacing: 0.02em;
   transition:
     background 0.2s,
     transform 0.1s;
 }
-
 .login-card .btn-primary:hover {
-  background: rgba(83, 74, 183, 1);
+  background: var(--purple-700);
   transform: translateY(-1px);
 }
-
 .login-card .btn {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  color: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.7);
   border-radius: 10px;
 }
-
 .login-card .btn:hover {
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.12);
 }

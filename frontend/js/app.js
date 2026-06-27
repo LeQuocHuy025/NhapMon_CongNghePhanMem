@@ -86,6 +86,14 @@ function closeChangePassword() {
   document.getElementById("confirm-password").value = "";
 }
 
+function forgotPassword() {
+  document.getElementById("forgot-password-modal").style.display = "flex";
+}
+
+function closeForgotPassword() {
+  document.getElementById("forgot-password-modal").style.display = "none";
+}
+
 async function changePassword() {
   const oldPassword = document.getElementById("old-password").value;
 
