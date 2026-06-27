@@ -1,0 +1,48 @@
+﻿services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: ql_cuocthi_db
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "Hvcs2025!"
+      MSSQL_PID: "Express"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    networks:
+      - app_network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'Hvcs2025!' -Q 'SELECT 1' -No || exit 1",
+        ]
+      interval: 10s
+      retries: 10
+      start_period: 30s
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: ql_cuocthi_app
+    env_file:
+      - .env
+    environment:
+      DB_SERVER: sqlserver
+    ports:
+      - "3000:3000"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    networks:
+      - app_network
+    restart: unless-stopped
+
+volumes:
+  sqlserver_data:
+
+networks:
+  app_network:
+    driver: bridge
