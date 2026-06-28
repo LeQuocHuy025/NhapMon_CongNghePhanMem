@@ -30,7 +30,7 @@
     env_file:
       - .env
     environment:
-      DB_SERVER: sqlserver
+      - DB_SERVER=sqlserver
     ports:
       - "3000:3000"
     depends_on:
